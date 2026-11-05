@@ -600,8 +600,13 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
 
 **Purpose**: 성능 예산 검증, 보안, 문서, 전체 품질 게이트
 
-- [ ] T118 [P] 기준 데이터셋 시드를 `perf/seed.sql`에 작성한다(헌법 1.0.1): 계좌 20개, 보유 종목 500건, 가이드 기록 1만 건, 종목·시세 포함
-- [ ] T119 [P] k6 스크립트를 `perf/budget.js`에 작성한다:
+**진행 메모 (2026-11-05)**
+- T125: `./gradlew check` 전체 통과(spotless, checkstyle, error prone, test, integrationTest, e2eTest, jacoco). `dependencyCheckAnalyze`는 빌드 설정 버그(키가 없으면 빈 NVD API 키를 넘겨 거부됨)를 고쳤지만, 로컬에 `NVD_API_KEY`가 없어 NVD 전체 다운로드(수 시간)를 끝까지 돌리지 못했다. CI(`secrets.NVD_API_KEY`)에서 확인이 필요하다.
+- T126: 앱 이미지(Dockerfile)·PostgreSQL 18 컨테이너에 `perf/seed.sql`을 넣고 k6를 실행해 예산을 모두 통과했다(5 VU·60초 p95: 목록 41.1ms, 단건 5.3ms, 쓰기 9.5ms, 체크 100%). 결과를 `perf/baseline.json`에 기록했다. quickstart S1~S6 수동 검증은 실제 토스증권 키·허용 IP·AI 키가 필요해 남아 있다. k6는 `noCookiesReset`이 없으면 반복마다 세션이 사라져 로그인 화면을 재므로 설정했다.
+
+- [X] T117a 제품 한도(2026-11-05 사용자 요청): 소유자 1인당 계좌 최대 2개(FR-002a, `AccountLimitPolicy`, `app.portfolio.max-accounts`), 보유 종목 최대 20개(FR-003a, 500 → 20). 초과 시 422와 상한 안내, 삭제한 계좌는 세지 않음. `AccountRoutesIT`·`HoldingRoutesIT`·`AccountLimitPolicyTest`
+- [X] T118 [P] 기준 데이터셋 시드를 `perf/seed.sql`에 작성한다(헌법 1.1.0): 계좌 2개, 보유 종목 20건, 가이드 기록 1만 건, 종목(검색용 2,000건)·시세 포함
+- [X] T119 [P] k6 스크립트를 `perf/budget.js`에 작성한다:
   - 로그인 세션
   - `GET /`(목록) p95 ≤ 300ms
   - `GET /fragments/quotes` ≤ 300ms
@@ -609,14 +614,14 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
   - `POST /accounts/{id}/holdings`(쓰기) ≤ 500ms
   - `GET /securities/search` ≤ 300ms
   - thresholds 위반 시 실패, 기준선 `perf/baseline.json` 대비 20% 회귀 시 실패
-- [ ] T120 [P] 프런트엔드 예산 E2E를 `E2E/perf/WebVitalsE2E.java`에 작성한다. 시드 데이터에서 대시보드 LCP ≤ 2.5s, CLS ≤ 0.1, INP ≤ 200ms(보유 종목 저장·가이드 버튼 상호작용, `PerformanceObserver` event timing), 초기 JS(gzip) ≤ 200KB(htmx만), 버튼 클릭 후 100ms 이내 `aria-busy` 표시(헌법 원칙 III)를 확인한다
-- [ ] T121 [P] HTML 린트 테스트를 `UT/ui/TemplateLintTest.java`에 작성한다:
+- [X] T120 [P] 프런트엔드 예산 E2E를 `E2E/perf/WebVitalsE2E.java`에 작성한다. 시드 데이터에서 대시보드 LCP ≤ 2.5s, CLS ≤ 0.1, INP ≤ 200ms(보유 종목 저장·가이드 버튼 상호작용, `PerformanceObserver` event timing), 초기 JS(gzip) ≤ 200KB(htmx만), 버튼 클릭 후 100ms 이내 `aria-busy` 표시(헌법 원칙 III)를 확인한다
+- [X] T121 [P] HTML 린트 테스트를 `UT/ui/TemplateLintTest.java`에 작성한다:
   - `RES/templates/**/*.html`에 인라인 `style=` 금지
   - 하드코딩 색상 금지
   - 모든 `<input>`에 연결된 `<label>` 존재(헌법 원칙 III)
-- [ ] T122 [P] 보안 헤더를 `SecurityConfig`에 추가한다: CSP `default-src 'self'`, `X-Content-Type-Options`, `Referrer-Policy`, 세션 쿠키 `HttpOnly; Secure; SameSite=Lax`. 검증은 `IT/auth/SecurityHeadersIT.java`에서 한다
-- [ ] T123 [P] `README.md`를 작성한다: 개요, 사전 준비(토스증권 client 키·허용 IP 등록, `APP_CRYPTO_KEY` 생성), `docker compose up`, 품질 게이트 명령, 아키텍처 요약. quickstart.md 링크를 포함한다
-- [ ] T124 헌법 `.specify/memory/constitution.md` 상단 Sync Impact Report 주석을 제거한다. 남은 TODO("500ms 충돌")는 research R8 비동기 설계로 해소되었다. 목록 상한 예외는 plan.md Complexity Tracking에 기록되어 있다
+- [X] T122 [P] 보안 헤더를 `SecurityConfig`에 추가한다: CSP `default-src 'self'`, `X-Content-Type-Options`, `Referrer-Policy`, 세션 쿠키 `HttpOnly; Secure; SameSite=Lax`. 검증은 `IT/auth/SecurityHeadersIT.java`에서 한다
+- [X] T123 [P] `README.md`를 작성한다: 개요, 사전 준비(토스증권 client 키·허용 IP 등록, `APP_CRYPTO_KEY` 생성), `docker compose up`, 품질 게이트 명령, 아키텍처 요약. quickstart.md 링크를 포함한다
+- [X] T124 헌법 `.specify/memory/constitution.md` 상단 Sync Impact Report 주석을 제거한다. (실제: 제품 한도 변경으로 기준 데이터셋을 계좌 2·보유 20건으로 개정한 1.1.0 보고서로 교체, 500ms TODO와 500건 예외는 해소로 기록) 남은 TODO("500ms 충돌")는 research R8 비동기 설계로 해소되었다. 목록 상한 예외는 plan.md Complexity Tracking에 기록되어 있다
 - [ ] T125 `./gradlew check`를 전체 실행한다(spotless, checkstyle, error prone, test, integrationTest, e2eTest, jacoco verification, dependencyCheck). 실패 항목을 수정해 모두 통과시킨다
 - [ ] T126 `docker compose up -d --build` 후 quickstart.md S1~S6 수동 검증과 `docker compose --profile perf run --rm k6`을 실행하고, 결과를 기준선 `perf/baseline.json`에 기록한다
 

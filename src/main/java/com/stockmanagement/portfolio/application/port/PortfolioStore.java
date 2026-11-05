@@ -27,6 +27,9 @@ public interface PortfolioStore {
 
     long countHoldings();
 
+    /** 삭제되지 않은 계좌 수. */
+    long countActiveAccounts();
+
     long insertHolding(long accountId, long securityId, HoldingTerms terms, Instant now);
 
     void updateHolding(long holdingId, HoldingTerms terms, Instant now);

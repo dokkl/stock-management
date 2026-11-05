@@ -28,7 +28,7 @@ public class HoldingService {
             PortfolioStore store,
             SecurityCatalog securities,
             Clock clock,
-            @Value("${app.portfolio.max-holdings:500}") int maxHoldings) {
+            @Value("${app.portfolio.max-holdings:20}") int maxHoldings) {
         this.store = store;
         this.securities = securities;
         this.clock = clock;

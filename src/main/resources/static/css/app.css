@@ -77,7 +77,7 @@ h2 { font-size: var(--font-size-lg); margin: 0; }
 
 /* 확인 대화상자 */
 .confirm-dialog { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-5); max-width: 360px; }
-.confirm-dialog::backdrop { background: rgb(0 0 0 / 40%); }
+.confirm-dialog::backdrop { background: var(--color-backdrop); }
 .dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-4); }
 
 /* 포트폴리오 */

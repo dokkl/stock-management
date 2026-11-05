@@ -1,6 +1,7 @@
 package com.stockmanagement.portfolio.web;
 
 import com.stockmanagement.common.domain.DomainValidationException;
+import com.stockmanagement.portfolio.domain.AccountLimitExceededException;
 import com.stockmanagement.portfolio.domain.DuplicateHoldingException;
 import com.stockmanagement.portfolio.domain.HoldingLimitExceededException;
 import jakarta.servlet.http.HttpServletResponse;
@@ -18,6 +19,9 @@ final class FormErrors {
         model.addAttribute("errorKey", e.getMessageKey());
         if (e instanceof HoldingLimitExceededException limit) {
             model.addAttribute("errorArg", limit.getMaxHoldings());
+        }
+        if (e instanceof AccountLimitExceededException limit) {
+            model.addAttribute("errorArg", limit.getMaxAccounts());
         }
         if (e instanceof DuplicateHoldingException duplicate) {
             model.addAttribute("existingHoldingId", duplicate.getExistingHoldingId());

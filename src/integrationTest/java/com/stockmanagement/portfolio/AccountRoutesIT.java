@@ -50,6 +50,30 @@ class AccountRoutesIT extends IntegrationTestBase {
     }
 
     @Test
+    void rejectsThirdAccount() throws Exception {
+        new Fixtures(jdbc).account("키움 일반");
+        new Fixtures(jdbc).account("미래에셋 해외");
+
+        mockMvc.perform(post("/accounts").param("name", "세 번째").with(owner()).with(csrf()))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(content().string(containsString("계좌는 최대 2개까지 만들 수 있습니다")));
+        assertThat(jdbc.sql("SELECT count(*) FROM account").query(Long.class).single())
+                .isEqualTo(2);
+    }
+
+    @Test
+    void deletedAccountFreesSlot() throws Exception {
+        long deleted = new Fixtures(jdbc).account("삭제할 계좌");
+        new Fixtures(jdbc).account("미래에셋 해외");
+        jdbc.sql("UPDATE account SET deleted_at = now() WHERE id = :id")
+                .param("id", deleted)
+                .update();
+
+        mockMvc.perform(post("/accounts").param("name", "새 계좌").with(owner()).with(csrf()))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
     void rejectsDuplicateName() throws Exception {
         new Fixtures(jdbc).account("키움 일반");
         mockMvc.perform(post("/accounts").param("name", "키움 일반").with(owner()).with(csrf()))
