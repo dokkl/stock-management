@@ -121,10 +121,12 @@ class HoldingRoutesIT extends IntegrationTestBase {
 
     @Test
     void rejectsWhenHoldingLimitReached() throws Exception {
-        f.manyHoldings(accountId, 500);
+        f.manyHoldings(accountId, 20);
         create(accountId, apple, "185", "1")
                 .andExpect(status().isUnprocessableContent())
-                .andExpect(content().string(containsString("보유 종목은 최대 500개까지 등록할 수 있습니다")));
+                .andExpect(content().string(containsString("보유 종목은 최대 20개까지 등록할 수 있습니다")));
+        assertThat(jdbc.sql("SELECT count(*) FROM holding").query(Long.class).single())
+                .isEqualTo(20);
     }
 
     @Test

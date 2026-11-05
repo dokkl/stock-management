@@ -58,15 +58,16 @@ class DashboardQueryIT extends IntegrationTestBase {
     }
 
     @Test
-    void loadsFiveHundredHoldingsWithSingleQuery() {
+    void loadsMaximumHoldingsWithSingleQuery() {
         Fixtures f = new Fixtures(jdbc);
-        long id = f.account("대량");
-        f.manyHoldings(id, 500);
+        long first = f.account("대량 1");
+        f.account("대량 2");
+        f.manyHoldings(first, 20);
         queryCounter.reset();
 
         DashboardView view = dashboardQuery.load();
 
-        assertThat(view.totalHoldings()).isEqualTo(500);
+        assertThat(view.totalHoldings()).isEqualTo(20);
         assertThat(queryCounter.count()).isLessThanOrEqualTo(2);
     }
 

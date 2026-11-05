@@ -64,6 +64,8 @@
 
 ## 참고
 
-- `compose.yaml`의 `perf` 프로필(k6)은 `./perf/budget.js`를 참조하지만 `perf/` 디렉터리는 아직 없다.
+- 성능 예산: `perf/seed.sql`(기준 데이터셋) + `perf/budget.js`(k6) + `perf/baseline.json`(기준선, 20% 회귀 시 실패).
+  k6는 `noCookiesReset: true`가 없으면 반복마다 세션이 사라진다. 프런트엔드 예산은 `WebVitalsE2E`.
+- 제품 한도: 계좌 최대 2개(`app.portfolio.max-accounts`), 보유 종목 최대 20개(`app.portfolio.max-holdings`).
 - 토스증권 API는 그룹별 호출 한도가 있어 `TossRateLimiter`가 그보다 낮게 제한한다. 호출을 추가할 때
   해당 그룹 한도를 확인한다.

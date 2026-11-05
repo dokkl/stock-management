@@ -35,13 +35,13 @@
 |---|---|---|---|
 | GET | `/` | 계좌별 보유 목록 대시보드 | 200 전체 페이지 |
 | GET | `/fragments/quotes` | 모든 보유 종목의 시세 셀 (htmx `every 30s` 폴링) | 200 프래그먼트, `hx-swap-oob` 셀 목록 |
-| POST | `/accounts` | `name` | 201 → 계좌 섹션 프래그먼트 / 422 |
+| POST | `/accounts` | `name` | 201 → 계좌 섹션 프래그먼트 / 422(검증·중복·계좌 2개 상한 FR-002a) |
 | PUT | `/accounts/{id}` | `name` | 200 계좌 헤더 프래그먼트 / 422 / 404 |
 | DELETE | `/accounts/{id}` | 확인 대화상자 후 호출 | 200 빈 프래그먼트 + 토스트 / 404 |
 | GET | `/accounts/{id}/edit` | 계좌 이름 변경 폼 프래그먼트 | 200 / 404 |
 | GET | `/accounts/{id}/header` | 계좌 헤더 프래그먼트(이름 변경 취소) | 200 / 404 |
 | GET | `/securities/search?q=&market=` | 종목 검색 자동완성. `q`는 1~40자, 최대 20건 | 200 목록 프래그먼트 |
-| POST | `/accounts/{id}/holdings` | `securityId`, `avgPrice`, `quantity` | 201 행 프래그먼트 / 422(검증·중복 FR-006·보유 500개 상한 FR-003a) |
+| POST | `/accounts/{id}/holdings` | `securityId`, `avgPrice`, `quantity` | 201 행 프래그먼트 / 422(검증·중복 FR-006·보유 20개 상한 FR-003a) |
 | PUT | `/holdings/{id}` | `avgPrice`, `quantity` | 200 행 프래그먼트 / 422 / 404 |
 | DELETE | `/holdings/{id}` | | 200 + 토스트 / 404 |
 | GET | `/holdings/{id}` | 보유 종목 행 프래그먼트(수정 취소) | 200 / 404 |

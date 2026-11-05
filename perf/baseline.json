@@ -1,0 +1,6 @@
+{
+  "note": "기준선 p95(ms). perf/budget.js가 이 값의 1.2배를 넘으면 실패한다(헌법 원칙 IV 20% 회귀). 2026-11-05 측정: 로컬 Docker(Apple Silicon), 앱·PostgreSQL 18 컨테이너, 5 VU 60초, perf/seed.sql 기준 데이터셋.",
+  "single": 5.26,
+  "list": 41.1,
+  "write": 9.54
+}

@@ -1,6 +1,6 @@
 package com.stockmanagement.portfolio.domain;
 
-/** FR-003a: 소유자 전체 보유 종목 상한(기본 500). 헌법 원칙 IV 예외의 근거(plan.md Complexity Tracking). */
+/** FR-003a: 소유자 전체 보유 종목 상한(기본 20). 대시보드가 페이지 없이 전체를 보여 줄 수 있는 근거다. */
 public record HoldingLimitPolicy(int maxHoldings) {
 
     public HoldingLimitPolicy {

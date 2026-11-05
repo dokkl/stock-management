@@ -32,6 +32,8 @@ services:
   k6:
     image: grafana/k6
     profiles: [perf]
+    environment:
+      BASE_URL: http://app:8080
     volumes:
       - ./perf:/scripts
     command: run /scripts/budget.js

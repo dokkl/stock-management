@@ -35,9 +35,10 @@ class SecurityConfig {
                         .permitAll())
                 .logout(logout -> logout.logoutUrl("/logout").logoutSuccessUrl("/login?logout"))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(new HtmxAwareAuthenticationEntryPoint()))
-                .headers(headers -> headers.contentSecurityPolicy(csp -> csp.policyDirectives(
-                                "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:;"
-                                        + " frame-ancestors 'none'; form-action 'self'"))
+                .headers(headers -> headers.contentSecurityPolicy(
+                                csp -> csp.policyDirectives(
+                                        "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:;"
+                                                + " object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"))
                         .referrerPolicy(
                                 referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN)))
                 .addFilterBefore(new SetupRequiredFilter(setupService), UsernamePasswordAuthenticationFilter.class);

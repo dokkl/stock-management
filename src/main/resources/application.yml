@@ -31,6 +31,8 @@ server:
       cookie:
         http-only: true
         same-site: lax
+        # HTTPS 없이 운영하면 SESSION_COOKIE_SECURE=false (localhost는 브라우저가 Secure 쿠키를 허용한다)
+        secure: ${SESSION_COOKIE_SECURE:true}
   error:
     include-stacktrace: never
     include-message: never
@@ -48,7 +50,8 @@ app:
   scheduling:
     enabled: true
   portfolio:
-    max-holdings: 500
+    max-accounts: 2
+    max-holdings: 20
   ai:
     timeout: 60s
     models:

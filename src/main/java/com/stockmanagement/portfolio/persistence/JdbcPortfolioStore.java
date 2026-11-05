@@ -100,6 +100,13 @@ class JdbcPortfolioStore implements PortfolioStore {
     }
 
     @Override
+    public long countActiveAccounts() {
+        return jdbc.sql("SELECT count(*) FROM account WHERE deleted_at IS NULL")
+                .query(Long.class)
+                .single();
+    }
+
+    @Override
     public long insertHolding(long accountId, long securityId, HoldingTerms terms, Instant now) {
         return jdbc.sql("""
                         INSERT INTO holding (account_id, security_id, avg_price, quantity, created_at, updated_at)

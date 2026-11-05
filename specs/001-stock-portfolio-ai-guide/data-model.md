@@ -47,6 +47,7 @@ market_token (독립, 토스증권 토큰 캐시)
 - **이름 유니크**: 삭제되지 않은 계좌끼리만 적용한다(`UNIQUE (name) WHERE deleted_at IS NULL`).
 - **삭제**: `deleted_at`을 설정하고, 그 계좌의 holding을 모두 물리 삭제한다. 가이드 기록은 계좌명을
   스냅샷으로 들고 있으므로 계속 조회할 수 있다.
+- **상한**: 삭제되지 않은 계좌 ≤ 2 (FR-002a, 애플리케이션에서 생성 시 검증, `app.portfolio.max-accounts`)
 
 ## security (종목 마스터)
 
@@ -90,7 +91,7 @@ market_token (독립, 토스증권 토큰 캐시)
   - `unrealizedPnl = marketValue − costBasis`
   - `returnRate = unrealizedPnl / costBasis`, 소수 넷째 자리 반올림(HALF_UP)
   - `direction = sign(unrealizedPnl)`, 값은 `UP` \| `DOWN` \| `FLAT`
-- **상한**: 소유자 전체 holding 행 수 ≤ 500 (FR-003a, 애플리케이션에서 등록 시 검증)
+- **상한**: 소유자 전체 holding 행 수 ≤ 20 (FR-003a, 애플리케이션에서 등록 시 검증, `app.portfolio.max-holdings`)
 
 ## quote (시세)
 

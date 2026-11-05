@@ -12,7 +12,7 @@
            th:attr="inputmode=${inputmode},aria-invalid=${hasError ? 'true' : null},aria-describedby=${hasError ? id + '-error' : (hint != null ? id + '-hint' : null)}"
            required>
     <p th:if="${hint != null and !hasError}" th:id="${id} + '-hint'" class="field-hint" th:text="${hint}">힌트</p>
-    <p th:if="${hasError}" th:id="${id} + '-error'" class="field-error" role="alert" th:text="#{${errorKey}}">오류</p>
+    <p th:if="${hasError}" th:id="${id} + '-error'" class="field-error" role="alert" th:text="#{${errorKey}(${errorArg})}">오류</p>
 </div>
 </body>
 </html>
