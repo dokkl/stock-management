@@ -1,0 +1,66 @@
+spring:
+  application:
+    name: stock-management
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/stock}
+    username: ${SPRING_DATASOURCE_USERNAME:stock}
+    password: ${SPRING_DATASOURCE_PASSWORD:stock}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  threads:
+    virtual:
+      enabled: true
+  messages:
+    basename: messages
+    fallback-to-system-locale: false
+  web:
+    locale: ko_KR
+    locale-resolver: fixed
+  docker:
+    compose:
+      lifecycle-management: start-only
+
+server:
+  servlet:
+    session:
+      timeout: 7d
+      cookie:
+        http-only: true
+        same-site: lax
+  error:
+    include-stacktrace: never
+    include-message: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+app:
+  zone: Asia/Seoul
+  crypto:
+    key: ${APP_CRYPTO_KEY:}
+  scheduling:
+    enabled: true
+  portfolio:
+    max-holdings: 500
+  ai:
+    timeout: 60s
+    models:
+      anthropic: claude-sonnet-5-5
+      openai: gpt-5
+  quote:
+    refresh-interval: 30s
+    stale-after: 1m
+  toss:
+    base-url: ${TOSS_BASE_URL:https://openapi.tossinvest.com}
+    client-id: ${TOSS_CLIENT_ID:}
+    client-secret: ${TOSS_CLIENT_SECRET:}
+    timeout: 10s
+  market:
+    master-sync-on-startup: true

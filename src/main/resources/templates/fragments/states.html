@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 데이터 화면의 4가지 상태 중 loading / empty / error (헌법 원칙 III). ready는 각 화면이 그린다. -->
+<p th:fragment="loading" class="state" aria-busy="true" th:text="#{common.loading}">불러오는 중…</p>
+
+<div th:fragment="empty(messageKey)" class="state">
+    <p th:text="#{${messageKey}}">항목이 없습니다.</p>
+</div>
+
+<div th:fragment="error(messageKey)" class="state state-error" role="alert">
+    <p th:text="#{${messageKey}}">오류가 발생했습니다.</p>
+</div>
+</body>
+</html>

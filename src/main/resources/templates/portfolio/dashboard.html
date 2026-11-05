@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head(#{portfolio.title})}"></head>
+<body>
+<a class="skip-link" href="#main">본문으로 건너뛰기</a>
+<header th:replace="~{layout :: header}"></header>
+<main id="main">
+    <div class="toolbar">
+        <h1 th:text="#{portfolio.title}">대시보드</h1>
+        <form th:replace="~{portfolio/account-create-form :: create-form(false)}"></form>
+    </div>
+
+    <div id="accounts">
+        <div id="accounts-empty" th:if="${dashboard.isEmpty()}">
+            <div th:replace="~{fragments/states :: empty('portfolio.empty')}"></div>
+        </div>
+        <th:block th:each="account : ${dashboard.accounts()}">
+            <section th:replace="~{portfolio/account :: account-section(${account})}"></section>
+        </th:block>
+    </div>
+</main>
+<th:block th:replace="~{layout :: chrome}"></th:block>
+
+</body>
+</html>

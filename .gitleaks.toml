@@ -1,0 +1,8 @@
+title = "stock-management gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "테스트 픽스처의 가짜 키"
+paths = ['''src/(test|integrationTest|e2eTest)/.*''']

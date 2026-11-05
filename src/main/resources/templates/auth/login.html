@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head(#{login.title})}"></head>
+<body>
+<a class="skip-link" href="#main">본문으로 건너뛰기</a>
+<header th:replace="~{layout :: header}"></header>
+<main id="main" class="narrow">
+    <h1 th:text="#{login.title}">로그인</h1>
+    <div th:if="${param.error}" class="alert alert-error" role="alert" th:text="#{login.error}">오류</div>
+    <div th:if="${param.locked}" class="alert alert-error" role="alert"
+         th:text="#{login.locked(${lockMinutes})}">잠금</div>
+    <div th:if="${param.logout}" class="alert" role="status" th:text="#{login.logout}">로그아웃</div>
+    <form class="form" th:action="@{/login}" method="post">
+        <input type="hidden" name="username" value="owner">
+        <div th:replace="~{fragments/field :: field('password', 'password', #{login.password}, 'password', '', null, null)}"></div>
+        <button th:replace="~{fragments/button :: button(#{login.submit}, 'primary', 'submit')}"></button>
+    </form>
+</main>
+<th:block th:replace="~{layout :: chrome}"></th:block>
+</body>
+</html>

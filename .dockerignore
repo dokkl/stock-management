@@ -1,0 +1,14 @@
+.git/
+.gradle/
+build/
+.idea/
+.vscode/
+*.log*
+.env*
+coverage/
+specs/
+perf/
+.specify/
+.claude/
+Dockerfile*
+.dockerignore

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 계좌 추가 폼. oob=true면 성공 응답에서 빈 폼으로 교체된다. -->
+<form th:fragment="create-form(oob)" id="account-create-form" class="form-inline"
+      th:action="@{/accounts}" method="post"
+      th:hx-post="@{/accounts}" hx-target="#accounts" hx-swap="beforeend"
+      th:attr="hx-swap-oob=${oob ? 'true' : null}">
+    <div th:replace="~{fragments/field :: field('account-name', 'name', #{portfolio.account.newName}, 'text', ${oob ? '' : accountNameValue}, null, null)}"></div>
+    <button th:replace="~{fragments/button :: button(#{portfolio.account.add}, 'primary', 'submit')}"></button>
+</form>
+
+<th:block th:fragment="create-form-only">
+    <form th:replace="~{:: create-form(false)}"></form>
+</th:block>
+</body>
+</html>

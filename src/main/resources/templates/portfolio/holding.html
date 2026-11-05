@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- 계좌의 보유 종목 표 -->
+<table th:fragment="holdings-table(account)" class="holdings">
+    <caption class="visually-hidden" th:text="#{portfolio.account.holdingsCaption(${account.name})}">보유 종목</caption>
+    <thead>
+    <tr>
+        <th scope="col" th:text="#{portfolio.col.security}">종목</th>
+        <th scope="col" th:text="#{portfolio.col.price}">현재가</th>
+        <th scope="col" th:text="#{portfolio.col.avgPrice}">평단가</th>
+        <th scope="col" th:text="#{portfolio.col.quantity}">수량</th>
+        <th scope="col" th:text="#{portfolio.col.pnl}">평가손익</th>
+        <th scope="col" th:text="#{portfolio.col.actions}">관리</th>
+    </tr>
+    </thead>
+    <tbody th:id="'holdings-' + ${account.id}">
+    <tr th:if="${account.holdings().isEmpty()}" th:id="'holdings-empty-' + ${account.id}">
+        <td colspan="6" class="muted" th:text="#{portfolio.holdings.empty}">아직 보유 종목이 없습니다.</td>
+    </tr>
+    <th:block th:each="h : ${account.holdings()}">
+        <tr th:replace="~{:: row(${h})}"></tr>
+    </th:block>
+    </tbody>
+</table>
+
+<!-- 보유 종목 행. 현재가·평가손익은 US2에서 시세와 연결된다. -->
+<tr th:fragment="row(h)" th:id="'holding-' + ${h.id}">
+    <th scope="row">
+        <span th:text="${h.name}">삼성전자</span>
+        <span class="security-code" th:text="${h.symbol}">005930</span>
+    </th>
+    <td><span class="flat" th:text="#{portfolio.quote.unavailable}">시세 없음</span></td>
+    <td th:text="${#money.avgPrice(h.avgPrice, h.currency)}">₩71,500</td>
+    <td th:text="${#money.quantity(h.quantity)}">10주</td>
+    <td>–</td>
+    <td>
+        <button type="button" class="btn-link"
+                th:hx-get="@{/holdings/{id}/edit(id=${h.id})}" hx-target="closest tr" hx-swap="outerHTML"
+                th:aria-label="#{portfolio.holding.edit(${h.name})}" th:text="#{common.edit}">수정</button>
+        <button type="button" class="btn-link danger"
+                th:hx-delete="@{/holdings/{id}(id=${h.id})}" hx-target="closest tr" hx-swap="outerHTML"
+                th:hx-confirm="#{portfolio.holding.deleteConfirm}"
+                th:aria-label="#{portfolio.holding.delete(${h.name})}" th:text="#{common.delete}">삭제</button>
+    </td>
+</tr>
+
+<th:block th:fragment="row-only">
+    <tr th:replace="~{:: row(${holding})}"></tr>
+</th:block>
+
+<!-- 인라인 수정 행 -->
+<tr th:fragment="edit-row(h)" th:id="'holding-' + ${h.id}">
+    <td colspan="6">
+        <form class="form-inline" th:hx-put="@{/holdings/{id}(id=${h.id})}" hx-target="closest tr" hx-swap="outerHTML">
+            <span class="selected-security" th:text="${h.name} + ' (' + ${h.symbol} + ')'">삼성전자</span>
+            <div th:replace="~{fragments/field :: field('edit-avg-' + ${h.id}, 'avgPrice', #{portfolio.holding.avgPrice}, 'text', ${form != null ? form.avgPrice : #money.plain(h.avgPrice)}, 'decimal', null)}"></div>
+            <div th:replace="~{fragments/field :: field('edit-qty-' + ${h.id}, 'quantity', #{portfolio.holding.quantity}, 'text', ${form != null ? form.quantity : #money.plain(h.quantity)}, 'decimal', null)}"></div>
+            <button th:replace="~{fragments/button :: button(#{common.save}, 'primary', 'submit')}"></button>
+            <button type="button" class="btn"
+                    th:hx-get="@{/holdings/{id}(id=${h.id})}" hx-target="closest tr" hx-swap="outerHTML"
+                    th:text="#{common.cancel}">취소</button>
+        </form>
+    </td>
+</tr>
+
+<th:block th:fragment="edit-row-only">
+    <tr th:replace="~{:: edit-row(${holding})}"></tr>
+</th:block>
+
+<!-- 종목 추가 폼. 성공 시 행을 표에 덧붙이고, 오류 시 이 폼을 오류와 함께 다시 그린다. -->
+<form th:fragment="holding-form(accountId, oob)" th:id="'holding-form-' + ${accountId}" class="form-inline" data-reset-on-success
+      th:hx-post="@{/accounts/{id}/holdings(id=${accountId})}"
+      th:hx-target="'#holdings-' + ${accountId}" hx-swap="beforeend"
+      th:attr="hx-swap-oob=${oob ? 'true' : null}"
+      th:with="f=${!oob and form != null and form.accountId == accountId ? form : null},
+               securityError=${f != null and errorField == 'securityId'}">
+    <div class="field">
+        <label th:for="'q-' + ${accountId}" th:text="#{portfolio.holding.search}">종목 검색</label>
+        <input type="search" name="q" autocomplete="off" th:id="'q-' + ${accountId}"
+               th:value="${f != null ? f.securityLabel : ''}"
+               th:hx-get="@{/securities/search}" hx-trigger="input delay:250ms" hx-sync="this:replace"
+               th:hx-target="'#search-results-' + ${accountId}"
+               th:attr="aria-describedby=${securityError ? 'q-error-' + accountId : 'q-hint-' + accountId},
+                        aria-invalid=${securityError ? 'true' : null}">
+        <p class="field-hint" th:id="'q-hint-' + ${accountId}" th:text="#{portfolio.holding.searchHint}">힌트</p>
+        <p th:if="${securityError}" class="field-error" role="alert" th:id="'q-error-' + ${accountId}">
+            <span th:text="#{${errorKey}(${errorArg})}">오류</span>
+            <a th:if="${existingHoldingId != null}" href="#"
+               th:hx-get="@{/holdings/{id}/edit(id=${existingHoldingId})}"
+               th:hx-target="'#holding-' + ${existingHoldingId}" hx-swap="outerHTML"
+               th:text="#{portfolio.holding.editExisting}">기존 항목 수정</a>
+        </p>
+        <div th:id="'search-results-' + ${accountId}"></div>
+        <p class="muted">
+            <span th:text="#{portfolio.holding.selected}">선택한 종목:</span>
+            <span data-selected-security th:data-empty-text="#{portfolio.holding.notSelected}"
+                  th:text="${f != null and f.securityLabel != null ? f.securityLabel : #messages.msg('portfolio.holding.notSelected')}">선택 안 함</span>
+        </p>
+        <input type="hidden" name="securityId" th:value="${f != null ? f.securityId : ''}">
+        <input type="hidden" name="securityLabel" th:value="${f != null ? f.securityLabel : ''}">
+    </div>
+    <div th:replace="~{fragments/field :: field('avg-' + ${accountId}, 'avgPrice', #{portfolio.holding.avgPrice}, 'text', ${f != null ? f.avgPrice : ''}, 'decimal', null)}"></div>
+    <div th:replace="~{fragments/field :: field('qty-' + ${accountId}, 'quantity', #{portfolio.holding.quantity}, 'text', ${f != null ? f.quantity : ''}, 'decimal', null)}"></div>
+    <button th:replace="~{fragments/button :: button(#{portfolio.holding.add}, 'primary', 'submit')}"></button>
+</form>
+
+<th:block th:fragment="form-only">
+    <form th:replace="~{:: holding-form(${accountId}, false)}"></form>
+</th:block>
+
+<!-- POST 성공: 새 행 + 빈 표 안내 제거. 폼 초기화는 app.js가 한다(표 문맥 응답에는 form을 넣을 수 없다). -->
+<th:block th:fragment="created">
+    <tr th:replace="~{:: row(${holding})}"></tr>
+    <tr th:id="'holdings-empty-' + ${holding.accountId}" hx-swap-oob="delete"><td></td></tr>
+</th:block>
+
+</body>
+</html>

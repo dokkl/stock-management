@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head(#{setup.title})}"></head>
+<body>
+<a class="skip-link" href="#main">본문으로 건너뛰기</a>
+<header th:replace="~{layout :: header}"></header>
+<main id="main" class="narrow">
+    <h1 th:text="#{setup.title}">처음 설정</h1>
+    <p class="muted" th:text="#{setup.description}">설명</p>
+    <form class="form" th:action="@{/setup}" method="post">
+        <div th:replace="~{fragments/field :: field('password', 'password', #{setup.password}, 'password', '', null, #{setup.passwordHint})}"></div>
+        <div th:replace="~{fragments/field :: field('passwordConfirm', 'passwordConfirm', #{setup.passwordConfirm}, 'password', '', null, null)}"></div>
+        <button th:replace="~{fragments/button :: button(#{setup.submit}, 'primary', 'submit')}"></button>
+    </form>
+</main>
+<th:block th:replace="~{layout :: chrome}"></th:block>
+</body>
+</html>

@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 버튼 위계: primary(주) / secondary(보조) / danger(위험). 요청 중에는 app.js가 aria-busy를 켠다. -->
+<button th:fragment="button(label, variant, type)" th:type="${type}" class="btn"
+        th:classappend="${variant == 'primary'} ? 'btn-primary' : (${variant == 'danger'} ? 'btn-danger' : '')"
+        th:text="${label}">버튼</button>
+</body>
+</html>

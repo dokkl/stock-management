@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="results">
+    <p th:if="${errorKey != null}" class="field-error" role="alert" th:text="#{${errorKey}}">오류</p>
+    <ul th:if="${errorKey == null and !results.isEmpty()}" class="search-results" role="listbox"
+        th:aria-label="#{portfolio.search.results}">
+        <li th:each="s : ${results}" role="option" tabindex="0" aria-selected="false"
+            th:data-security-id="${s.id}"
+            th:data-security-label="${s.displayName()} + ' (' + ${s.symbol} + ')'">
+            <span th:text="${s.displayName()}">삼성전자</span>
+            <span class="security-code" th:text="${s.symbol} + ' · ' + ${s.exchange}">005930 · KOSPI</span>
+        </li>
+    </ul>
+    <p th:if="${errorKey == null and results.isEmpty()}" class="muted" role="status"
+       th:text="#{portfolio.search.none}">검색 결과가 없습니다.</p>
+</th:block>
+</body>
+</html>

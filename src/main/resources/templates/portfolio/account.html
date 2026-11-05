@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- 계좌 섹션: 헤더 + 보유 종목 표 + 종목 추가 폼 -->
+<section th:fragment="account-section(account)" class="account" th:id="'account-' + ${account.id}"
+         th:aria-labelledby="'account-name-' + ${account.id}">
+    <div th:replace="~{:: account-header(${account})}"></div>
+    <div class="account-body">
+        <table th:replace="~{portfolio/holding :: holdings-table(${account})}"></table>
+        <form th:replace="~{portfolio/holding :: holding-form(${account.id}, false)}"></form>
+    </div>
+</section>
+
+<div th:fragment="account-header(account)" class="account-header" th:id="'account-header-' + ${account.id}">
+    <h2 th:id="'account-name-' + ${account.id}" th:text="${account.name}">키움 일반</h2>
+    <div class="account-actions">
+        <button type="button" class="btn-link"
+                th:hx-get="@{/accounts/{id}/edit(id=${account.id})}"
+                th:hx-target="'#account-header-' + ${account.id}" hx-swap="outerHTML"
+                th:text="#{portfolio.account.rename}">이름 변경</button>
+        <button type="button" class="btn-link danger"
+                th:hx-delete="@{/accounts/{id}(id=${account.id})}"
+                th:hx-target="'#account-' + ${account.id}" hx-swap="outerHTML"
+                th:hx-confirm="#{portfolio.account.deleteConfirm}"
+                th:text="#{portfolio.account.delete}">계좌 삭제</button>
+    </div>
+</div>
+
+<th:block th:fragment="header-only">
+    <div th:replace="~{:: account-header(${account})}"></div>
+</th:block>
+
+<th:block th:fragment="rename-form">
+    <form class="account-header form-inline" th:id="'account-header-' + ${account.id}"
+          th:hx-put="@{/accounts/{id}(id=${account.id})}" hx-target="this" hx-swap="outerHTML">
+        <div th:replace="~{fragments/field :: field('rename-' + ${account.id}, 'name', #{portfolio.account.name}, 'text', ${accountNameValue != null ? accountNameValue : account.name}, null, null)}"></div>
+        <button th:replace="~{fragments/button :: button(#{common.save}, 'primary', 'submit')}"></button>
+        <button type="button" class="btn"
+                th:hx-get="@{/accounts/{id}/header(id=${account.id})}"
+                hx-target="closest form" hx-swap="outerHTML"
+                th:text="#{common.cancel}">취소</button>
+    </form>
+</th:block>
+
+<!-- POST /accounts 성공: 새 섹션 + 빈 상태 제거 + 빈 추가 폼 -->
+<th:block th:fragment="created">
+    <section th:replace="~{:: account-section(${account})}"></section>
+    <div id="accounts-empty" hx-swap-oob="delete"></div>
+    <form th:replace="~{portfolio/account-create-form :: create-form(true)}"></form>
+</th:block>
+
+<!-- DELETE /accounts/{id} 성공: 섹션 자리를 비우고(마지막 계좌면 빈 상태) 토스트 -->
+<th:block th:fragment="deleted">
+    <div id="accounts-empty" th:if="${nowEmpty}">
+        <div th:replace="~{fragments/states :: empty('portfolio.empty')}"></div>
+    </div>
+    <div th:replace="~{fragments/toast :: toast}"></div>
+</th:block>
+
+</body>
+</html>

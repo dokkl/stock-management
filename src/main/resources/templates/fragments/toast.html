@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 토스트: htmx out-of-band로 #toast-region에 추가된다. toastKey는 메시지 키, toastLevel은 info|error -->
+<div th:fragment="toast" id="toast-region" hx-swap-oob="beforeend">
+    <div class="toast" th:classappend="${toastLevel}" role="status" th:text="#{${toastKey}}">메시지</div>
+</div>
+</body>
+</html>

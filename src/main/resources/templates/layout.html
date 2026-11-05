@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="htmx-config"
+          content='{"includeIndicatorStyles":false,"allowEval":false,"responseHandling":[{"code":"204","swap":false},{"code":"[23]..","swap":true},{"code":"422","swap":true},{"code":"[45]..","swap":true,"error":true}]}'>
+    <meta name="csrf-token" th:if="${_csrf != null}" th:content="${_csrf.token}">
+    <meta name="csrf-header" th:if="${_csrf != null}" th:content="${_csrf.headerName}">
+    <title th:text="${title} + ' · ' + #{app.name}">Stock Management</title>
+    <link rel="stylesheet" th:href="@{/css/tokens.css}">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script th:src="@{/webjars/htmx.org/dist/htmx.min.js}" defer></script>
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+
+<header th:fragment="header" class="site-header">
+    <a class="brand" th:href="@{/}" th:text="#{app.name}">Stock Management</a>
+    <nav class="site-nav" sec:authorize="isAuthenticated()" th:aria-label="#{nav.main}">
+        <a th:href="@{/}" th:text="#{nav.dashboard}">대시보드</a>
+        <form th:action="@{/logout}" method="post">
+            <button type="submit" class="btn btn-link" th:text="#{nav.logout}">로그아웃</button>
+        </form>
+    </nav>
+</header>
+
+<th:block th:fragment="chrome">
+    <div id="toast-region" class="toast-region" role="status" aria-live="polite"></div>
+    <dialog id="confirm-dialog" class="confirm-dialog" aria-labelledby="confirm-dialog-title">
+        <form method="dialog">
+            <h2 id="confirm-dialog-title" th:text="#{confirm.title}">확인이 필요합니다</h2>
+            <p data-confirm-message></p>
+            <div class="dialog-actions">
+                <button type="submit" value="cancel" class="btn" th:text="#{common.cancel}">취소</button>
+                <button type="submit" value="confirm" class="btn btn-danger" th:text="#{common.confirm}">확인</button>
+            </div>
+        </form>
+    </dialog>
+</th:block>
+
+</body>
+</html>

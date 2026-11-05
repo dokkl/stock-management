@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ai-guide-output.schema.json",
+  "title": "GuideContent",
+  "description": "AI 공급자가 반환해야 하는 가이드 구조 (FR-017). guide_request.content(JSONB)에 그대로 저장된다. 면책 문구는 AI가 아니라 화면이 고정 문구로 붙인다.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["summary", "diagnosis", "action", "rationale", "risks"],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "description": "최근 주가 흐름 분석 요약",
+      "minLength": 1,
+      "maxLength": 1500
+    },
+    "diagnosis": {
+      "type": "string",
+      "description": "사용자 보유 상황(평단가 대비 위치, 수익률) 진단",
+      "minLength": 1,
+      "maxLength": 1500
+    },
+    "action": {
+      "type": "string",
+      "enum": ["HOLD", "BUY_MORE", "PARTIAL_SELL", "SELL", "WATCH"],
+      "description": "행동 가이드 분류"
+    },
+    "rationale": {
+      "type": "string",
+      "description": "행동 가이드의 근거",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "risks": {
+      "type": "array",
+      "description": "주요 위험 요인",
+      "minItems": 1,
+      "maxItems": 5,
+      "items": { "type": "string", "minLength": 1, "maxLength": 300 }
+    }
+  }
+}
