@@ -90,6 +90,10 @@ h2 { font-size: var(--font-size-lg); margin: 0; }
 .holdings th { font-size: var(--font-size-sm); color: var(--color-text-muted); font-weight: var(--font-weight-bold); }
 .security-code { color: var(--color-text-muted); font-size: var(--font-size-sm); margin-left: var(--space-1); }
 
+.quote-cell .price { display: block; font-weight: var(--font-weight-bold); }
+.quote-cell .change { display: block; font-size: var(--font-size-sm); }
+.quote-status { display: block; font-size: var(--font-size-sm); color: var(--color-text-muted); }
+
 .up { color: var(--color-up); }
 .down { color: var(--color-down); }
 .flat { color: var(--color-flat); }

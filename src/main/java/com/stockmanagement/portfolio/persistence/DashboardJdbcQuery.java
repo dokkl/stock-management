@@ -2,54 +2,68 @@ package com.stockmanagement.portfolio.persistence;
 
 import com.stockmanagement.common.domain.Currency;
 import com.stockmanagement.market.domain.Exchange;
+import com.stockmanagement.market.domain.Quote;
+import com.stockmanagement.market.domain.QuoteStatus;
 import com.stockmanagement.market.domain.TradingStatus;
+import com.stockmanagement.market.persistence.QuoteRows;
 import com.stockmanagement.portfolio.application.DashboardQuery;
 import com.stockmanagement.portfolio.application.DashboardView;
 import com.stockmanagement.portfolio.application.DashboardView.AccountView;
 import com.stockmanagement.portfolio.application.DashboardView.HoldingView;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** account LEFT JOIN holding JOIN security 단일 쿼리(N+1 없음). */
+/** account LEFT JOIN holding JOIN security LEFT JOIN quote 단일 쿼리(N+1 없음). */
 @Repository
 class DashboardJdbcQuery implements DashboardQuery {
 
     private static final String SELECT = """
             SELECT a.id AS account_id, a.name AS account_name,
                    h.id AS holding_id, h.avg_price, h.quantity,
-                   s.id AS security_id, s.exchange, s.symbol, s.name_ko, s.name_en, s.currency, s.trading_status
+                   s.id AS security_id, s.exchange, s.symbol, s.name_ko, s.name_en, s.currency, s.trading_status,
+                   q.price, q.prev_close, q.session_date, q.market_state, q.as_of, q.fetched_at
             FROM account a
             LEFT JOIN holding h ON h.account_id = a.id
             LEFT JOIN security s ON s.id = h.security_id
+            LEFT JOIN quote q ON q.security_id = s.id
             WHERE a.deleted_at IS NULL
             """;
     private static final String ORDER =
             " ORDER BY a.name COLLATE \"C\", a.id, coalesce(s.name_ko, s.name_en) COLLATE \"C\", h.id";
 
     private final JdbcClient jdbc;
+    private final Clock clock;
+    private final Duration staleAfter;
 
-    DashboardJdbcQuery(JdbcClient jdbc) {
+    DashboardJdbcQuery(JdbcClient jdbc, Clock clock, @Value("${app.quote.stale-after}") Duration staleAfter) {
         this.jdbc = jdbc;
+        this.clock = clock;
+        this.staleAfter = staleAfter;
     }
 
     @Override
     public DashboardView load() {
         return new DashboardView(
-                group(jdbc.sql(SELECT + ORDER).query(DashboardJdbcQuery::row).list()));
+                group(jdbc.sql(SELECT + ORDER).query(rowMapper()).list()));
     }
 
     @Override
     public Optional<AccountView> findAccount(long accountId) {
         List<Row> rows = jdbc.sql(SELECT + " AND a.id = :id" + ORDER)
                 .param("id", accountId)
-                .query(DashboardJdbcQuery::row)
+                .query(rowMapper())
                 .list();
         return group(rows).stream().findFirst();
     }
@@ -58,7 +72,7 @@ class DashboardJdbcQuery implements DashboardQuery {
     public Optional<HoldingView> findHolding(long holdingId) {
         return jdbc.sql(SELECT + " AND h.id = :id")
                 .param("id", holdingId)
-                .query(DashboardJdbcQuery::row)
+                .query(rowMapper())
                 .optional()
                 .map(Row::holding);
     }
@@ -78,26 +92,34 @@ class DashboardJdbcQuery implements DashboardQuery {
                 .toList();
     }
 
-    private static Row row(ResultSet rs, int rowNum) throws SQLException {
-        long accountId = rs.getLong("account_id");
-        long holdingId = rs.getLong("holding_id");
-        HoldingView holding = rs.wasNull() ? null : holding(rs, accountId, holdingId);
-        return new Row(accountId, rs.getString("account_name"), holding);
+    /** 시세 상태는 조회 시각 기준이므로 쿼리마다 시각을 한 번 정해 모든 행에 같은 기준을 쓴다. */
+    private RowMapper<Row> rowMapper() {
+        Instant now = clock.instant();
+        return (rs, rowNum) -> {
+            long accountId = rs.getLong("account_id");
+            long holdingId = rs.getLong("holding_id");
+            HoldingView holding = rs.wasNull() ? null : holding(rs, accountId, holdingId, now);
+            return new Row(accountId, rs.getString("account_name"), holding);
+        };
     }
 
-    private static HoldingView holding(ResultSet rs, long accountId, long holdingId) throws SQLException {
+    private HoldingView holding(ResultSet rs, long accountId, long holdingId, Instant now) throws SQLException {
         String nameKo = rs.getString("name_ko");
+        long securityId = rs.getLong("security_id");
+        Quote quote = QuoteRows.quote(rs, securityId);
         return new HoldingView(
                 holdingId,
                 accountId,
-                rs.getLong("security_id"),
+                securityId,
                 Exchange.valueOf(rs.getString("exchange")),
                 rs.getString("symbol"),
                 nameKo != null ? nameKo : rs.getString("name_en"),
                 Currency.valueOf(rs.getString("currency").strip()),
                 TradingStatus.valueOf(rs.getString("trading_status")),
                 rs.getBigDecimal("avg_price"),
-                rs.getBigDecimal("quantity"));
+                rs.getBigDecimal("quantity"),
+                quote,
+                QuoteStatus.of(quote, now, staleAfter));
     }
 
     private record Row(long accountId, String accountName, HoldingView holding) {}

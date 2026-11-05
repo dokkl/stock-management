@@ -287,33 +287,33 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T061 [P] [US2] `Quote` 파생값 단위 테스트를 `UT/market/domain/QuoteTest.java`에 작성한다:
+- [X] T061 [P] [US2] `Quote` 파생값 단위 테스트를 `UT/market/domain/QuoteTest.java`에 작성한다:
   - 70,000 → 71,000이면 change +1,000, rate +1.43%, UP
   - $190.00 → $187.50이면 −2.50, −1.32%, DOWN
   - 같으면 FLAT
   - 신선도: OPEN이고 `now − fetched_at > 1분`이면 STALE(SC-003), 시세 행 없으면 UNAVAILABLE
-- [ ] T062 [P] [US2] `HoldingValuation` 단위 테스트를 `UT/portfolio/domain/HoldingValuationTest.java`에 작성한다: 평단가 71,500 × 10주, 현재가 71,000이면 평가손익 −5,000, 수익률 −0.70%, DOWN. USD 소수 수량 케이스도 포함한다
-- [ ] T063 [P] [US2] `MarketCalendar` 단위 테스트를 `UT/market/domain/MarketCalendarTest.java`에 작성한다:
+- [X] T062 [P] [US2] `HoldingValuation` 단위 테스트를 `UT/portfolio/domain/HoldingValuationTest.java`에 작성한다: 평단가 71,500 × 10주, 현재가 71,000이면 평가손익 −5,000, 수익률 −0.70%, DOWN. USD 소수 수량 케이스도 포함한다
+- [X] T063 [P] [US2] `MarketCalendar` 단위 테스트를 `UT/market/domain/MarketCalendarTest.java`에 작성한다:
   - KR 09:00~15:30 KST
   - US 09:30~16:00 America/New_York, 서머타임 시작·종료 주 포함
   - 토스증권 장 운영일(오늘이 영업일이 아니면) HOLIDAY
   - 개장 전 PRE_OPEN, 마감 후 CLOSED
-- [ ] T064 [P] [US2] 토스증권 시세 어댑터 통합 테스트를 `IT/market/TossMarketDataProviderIT.java`에 작성한다(WireMock `GET /api/v1/prices`, `/api/v1/candles?interval=1d`, `/api/v1/market-calendar/{KR|US}`):
+- [X] T064 [P] [US2] 토스증권 시세 어댑터 통합 테스트를 `IT/market/TossMarketDataProviderIT.java`에 작성한다(WireMock `GET /api/v1/prices`, `/api/v1/candles?interval=1d`, `/api/v1/market-calendar/{KR|US}`):
   - 국내·해외 현재가 응답 파싱 결과가 BigDecimal이고 문자열 그대로 보존됨
   - 한 종목 500 응답은 `Failure(UPSTREAM_ERROR)`, 나머지는 Success
   - 429는 `RATE_LIMITED`
   - 응답의 거래정지 표시가 있으면 결과에 `suspended=true`(Edge Case 거래정지)
   - 초당 15건 제한 준수
-- [ ] T065 [P] [US2] `QuoteRefreshScheduler` 통합 테스트를 `IT/market/QuoteRefreshSchedulerIT.java`에 작성한다:
+- [X] T065 [P] [US2] `QuoteRefreshScheduler` 통합 테스트를 `IT/market/QuoteRefreshSchedulerIT.java`에 작성한다:
   - 장중 시장의 보유 종목만 호출
   - 실패 종목은 기존 값과 `fetched_at` 유지
   - CLOSED 시장은 마감 후 1회만 종가 확정
   - 보유하지 않은 종목은 호출하지 않음
-- [ ] T066 [P] [US2] 시세 프래그먼트 계약 테스트를 `IT/market/QuoteFragmentIT.java`에 작성한다:
+- [X] T066 [P] [US2] 시세 프래그먼트 계약 테스트를 `IT/market/QuoteFragmentIT.java`에 작성한다:
   - `GET /fragments/quotes`가 200을 반환하고 각 셀에 `hx-swap-oob`, `class="up|down|flat"`, ▲/▼/– 기호가 있음
   - "HH:mm:ss 기준", "지연 (HH:mm 기준)", "시세 없음", "장 마감", "거래정지" 상태 문구
   - 미인증 401
-- [ ] T067 [P] [US2] E2E 시나리오를 `E2E/market/QuoteDisplayE2E.java`에 작성한다:
+- [X] T067 [P] [US2] E2E 시나리오를 `E2E/market/QuoteDisplayE2E.java`에 작성한다:
   - WireMock 시세로 상승·하락·보합 3종목 구성
   - 색상 CSS 변수와 기호 확인
   - 시세 실패 후 "지연" 표시 확인
@@ -321,21 +321,28 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
 
 ### Implementation for User Story 2
 
-- [ ] T068 [US2] Flyway `RES/db/migration/V5__quote.sql`을 작성한다:
+- [X] T068 [US2] Flyway `RES/db/migration/V5__quote.sql`을 작성한다:
   - `quote`: security_id BIGINT PK FK, price NUMERIC(19,4) NOT NULL, prev_close NUMERIC(19,4) NOT NULL, market_state VARCHAR(12) NOT NULL `CHECK (market_state IN ('PRE_OPEN','OPEN','CLOSED','HOLIDAY'))`, as_of TIMESTAMPTZ NOT NULL, fetched_at TIMESTAMPTZ NOT NULL
   - (휴장일 테이블 없음: 토스증권 장 운영일 API 사용, data-model.md)
-- [ ] T069 [P] [US2] `Quote`(파생 change, changeRate, direction, freshness)와 `MarketState`를 `MAIN/market/domain/`에 구현한다(T061 통과)
-- [ ] T070 [P] [US2] `MarketCalendar`를 `MAIN/market/domain/MarketCalendar.java`에 구현한다. 입력은 `Clock`과 토스증권 장 운영일 응답(오늘·직전·다음 영업일)이다(T063 통과)
-- [ ] T071 [P] [US2] `HoldingValuation`을 `MAIN/portfolio/domain/HoldingValuation.java`에 구현한다. costBasis, marketValue, unrealizedPnl, returnRate(HALF_UP 4자리), direction을 계산한다(T062 통과)
-- [ ] T072 [US2] `TossMarketDataProvider`에 `fetchQuotes`(`GET /api/v1/prices`, 최대 200종목씩), `fetchMarketCalendar`, `fetchPreviousClose`(일봉 1d로 직전 영업일 종가, 종목당 하루 1회 캐시)를 `MAIN/market/adapter/toss/TossMarketDataProvider.java`에 구현한다. `MARKET_DATA`·`MARKET_DATA_CHART`·`MARKET_INFO` 그룹 레이트 리미터(`TossRateLimiter`)를 거친다. 거래정지 여부(현재가 API에 없음 — `GET /api/v1/stocks/{symbol}/warnings` 응답으로 판별, 구현 시 스펙 확인)는 `QuoteRefreshScheduler`가 `security.trading_status`를 `SUSPENDED`/`ACTIVE`로 갱신하는 데 쓴다(T064 통과)
-- [ ] T073 [US2] `QuoteRepository`(JdbcClient upsert)를 `MAIN/market/persistence/`에, 장 운영일 캐시(하루 1회 갱신)를 `MAIN/market/application/MarketCalendarCache.java`에 구현한다
-- [ ] T074 [US2] `QuoteRefreshScheduler`를 `MAIN/market/application/QuoteRefreshScheduler.java`에 구현한다. `@Scheduled(fixedDelayString="${app.quote.refresh-interval}")`, 보유 종목 distinct 조회, 장 상태별 호출 여부를 판단하고 실패 시 기존 행을 유지한다(T065 통과)
-- [ ] T075 [US2] `DashboardJdbcQuery`에 `LEFT JOIN quote`를 추가하고 `DashboardView` 행에 Quote·HoldingValuation을 채운다. 파일은 `MAIN/portfolio/persistence/DashboardJdbcQuery.java`이며, 단일 쿼리를 유지한다(T045 재통과)
-- [ ] T076 [US2] 시세 셀 프래그먼트 `RES/templates/fragments/quote-cell.html`을 만든다:
+- [X] T069 [P] [US2] `Quote`(파생 change, changeRate, direction, freshness)와 `MarketState`를 `MAIN/market/domain/`에 구현한다(T061 통과)
+- [X] T070 [P] [US2] `MarketCalendar`를 `MAIN/market/domain/MarketCalendar.java`에 구현한다. 입력은 `Clock`과 토스증권 장 운영일 응답(오늘·직전·다음 영업일)이다(T063 통과)
+- [X] T071 [P] [US2] `HoldingValuation`을 `MAIN/portfolio/domain/HoldingValuation.java`에 구현한다. costBasis, marketValue, unrealizedPnl, returnRate(HALF_UP 4자리), direction을 계산한다(T062 통과)
+- [X] T072 [US2] `TossMarketDataProvider`에 `fetchQuotes`(`GET /api/v1/prices`, 최대 200종목씩), `fetchMarketCalendar`, `fetchPreviousClose`(일봉 1d로 직전 영업일 종가, 종목당 하루 1회 캐시)를 `MAIN/market/adapter/toss/TossMarketDataProvider.java`에 구현한다. `MARKET_DATA`·`MARKET_DATA_CHART`·`MARKET_INFO` 그룹 레이트 리미터(`TossRateLimiter`)를 거친다. 거래정지 여부(현재가 API에 없음 — `GET /api/v1/stocks/{symbol}/warnings` 응답으로 판별, 구현 시 스펙 확인)는 `QuoteRefreshScheduler`가 `security.trading_status`를 `SUSPENDED`/`ACTIVE`로 갱신하는 데 쓴다(T064 통과)
+- [X] T073 [US2] `QuoteRepository`(JdbcClient upsert)를 `MAIN/market/persistence/`에, 장 운영일 캐시(하루 1회 갱신)를 `MAIN/market/application/MarketCalendarCache.java`에 구현한다
+- [X] T074 [US2] `QuoteRefreshScheduler`를 `MAIN/market/application/QuoteRefreshScheduler.java`에 구현한다. `@Scheduled(fixedDelayString="${app.quote.refresh-interval}")`, 보유 종목 distinct 조회, 장 상태별 호출 여부를 판단하고 실패 시 기존 행을 유지한다(T065 통과)
+- [X] T075 [US2] `DashboardJdbcQuery`에 `LEFT JOIN quote`를 추가하고 `DashboardView` 행에 Quote·HoldingValuation을 채운다. 파일은 `MAIN/portfolio/persistence/DashboardJdbcQuery.java`이며, 단일 쿼리를 유지한다(T045 재통과)
+- [X] T076 [US2] 시세 셀 프래그먼트 `RES/templates/fragments/quote-cell.html`을 만든다:
   - 현재가, 전일 대비, 평가손익·수익률, 상태 문구
   - `class` up/down/flat
   - `aria-label`에 "상승/하락/보합" 텍스트 포함
-- [ ] T077 [US2] `QuoteFragmentController`(`GET /fragments/quotes`)를 `MAIN/market/web/`에 구현하고, `holding-row.html`에 `quote-cell` 포함과 `hx-trigger="every 30s"` 폴링을 연결한다(T066·T067 통과)
+- [X] T077 [US2] `QuoteFragmentController`(`GET /fragments/quotes`)를 `MAIN/market/web/`에 구현하고, `holding-row.html`에 `quote-cell` 포함과 `hx-trigger="every 30s"` 폴링을 연결한다(T066·T067 통과)
+
+**구현 메모 (2026-11-05)**: 계획과 달라진 점
+- `quote`에 `session_date`(시세가 속한 거래일) 컬럼을 추가했다. 전일 종가를 거래일이 바뀔 때만 다시 받기 위해서다(종목당 하루 1회 캐시).
+- T072 거래정지: `warnings` API에는 거래정지 정보가 없어 `GET /api/v1/stocks`의 `koreanMarketDetail.krxTradingSuspended`를 쓴다(STOCK 그룹, 초당 2회로 제한). 미국 종목은 정지 정보가 없다.
+- T073 `QuoteRepository` 대신 포트 `market.application.port.QuoteStore`와 구현 `market.persistence.JdbcQuoteStore`로 나눴다.
+- T076 `aria-label` 대신 숨김 텍스트("전일 대비 상승", "손실")를 쓴다. axe가 역할 없는 `span`의 `aria-label`을 위반으로 보기 때문이다. 장 시작 전 상태 문구 "장 시작 전"을 추가했다.
+- T077 `QuoteFragmentController`는 `portfolio/web`에 두었다(평가손익 셀도 함께 그리며, market → portfolio 역방향 의존을 피함). 폴링은 행마다가 아니라 대시보드의 `#quote-poller` 하나가 30초마다 OOB 응답을 받는다.
 
 **Checkpoint**: US1 + US2가 함께 동작하며, US2는 시세 픽스처만으로 독립 검증할 수 있다.
 

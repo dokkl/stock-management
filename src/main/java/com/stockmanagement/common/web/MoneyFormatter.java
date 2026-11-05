@@ -1,10 +1,13 @@
 package com.stockmanagement.common.web;
 
 import com.stockmanagement.common.domain.Currency;
+import com.stockmanagement.common.domain.KstDate;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 /** 숫자·통화·등락 표기의 단일 포매터(헌법 원칙 III). Thymeleaf에서는 {@code #money}로 쓴다. */
@@ -14,6 +17,10 @@ public final class MoneyFormatter {
     private static final String DOWN = "▼";
     private static final String FLAT = "–";
     private static final String MINUS = "−";
+    private static final DateTimeFormatter TIME =
+            DateTimeFormatter.ofPattern("HH:mm:ss").withZone(KstDate.ZONE);
+    private static final DateTimeFormatter SHORT_TIME =
+            DateTimeFormatter.ofPattern("HH:mm").withZone(KstDate.ZONE);
 
     /** 현재가·손익: 통화 표시 자릿수(KRW 0, USD 2). */
     public String price(BigDecimal amount, Currency currency) {
@@ -31,6 +38,21 @@ public final class MoneyFormatter {
         String arrow = arrow(change);
         String amount = number(change.abs(), currency.displayScale());
         return arrow + " " + amount + " (" + percent(rate) + ")";
+    }
+
+    /** 평가손익: "▼ ₩5,000 (−0.70%)". 금액은 절댓값, 방향은 기호로 나타낸다. rate는 비율이다. */
+    public String pnl(BigDecimal amount, BigDecimal rate, Currency currency) {
+        return arrow(amount) + " " + price(amount.abs(), currency) + " (" + percent(rate) + ")";
+    }
+
+    /** 시세 기준 시각(KST): "14:32:05". */
+    public String time(Instant instant) {
+        return TIME.format(instant);
+    }
+
+    /** 지연 표시용 시각(KST): "14:32". */
+    public String shortTime(Instant instant) {
+        return SHORT_TIME.format(instant);
     }
 
     /** 비율을 부호 있는 퍼센트로: +1.43%, −1.32%, 0.00%. */

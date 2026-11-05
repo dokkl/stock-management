@@ -25,16 +25,16 @@
     </tbody>
 </table>
 
-<!-- 보유 종목 행. 현재가·평가손익은 US2에서 시세와 연결된다. -->
+<!-- 보유 종목 행. 현재가·평가손익 셀은 대시보드의 30초 폴링(GET /fragments/quotes)이 교체한다. -->
 <tr th:fragment="row(h)" th:id="'holding-' + ${h.id}">
     <th scope="row">
         <span th:text="${h.name}">삼성전자</span>
         <span class="security-code" th:text="${h.symbol}">005930</span>
     </th>
-    <td><span class="flat" th:text="#{portfolio.quote.unavailable}">시세 없음</span></td>
+    <td th:replace="~{fragments/quote-cell :: price(${h}, false)}"></td>
     <td th:text="${#money.avgPrice(h.avgPrice, h.currency)}">₩71,500</td>
     <td th:text="${#money.quantity(h.quantity)}">10주</td>
-    <td>–</td>
+    <td th:replace="~{fragments/quote-cell :: pnl(${h}, false)}"></td>
     <td>
         <button type="button" class="btn-link"
                 th:hx-get="@{/holdings/{id}/edit(id=${h.id})}" hx-target="closest tr" hx-swap="outerHTML"

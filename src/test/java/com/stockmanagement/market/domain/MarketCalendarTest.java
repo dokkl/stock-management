@@ -1,6 +1,7 @@
 package com.stockmanagement.market.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -70,5 +71,30 @@ class MarketCalendarTest {
         MarketCalendar holiday =
                 new MarketCalendar(Market.KR, LocalDate.of(2026, 5, 5), null, null, LocalDate.of(2026, 5, 4));
         assertThat(holiday.referenceDate()).isEqualTo(LocalDate.of(2026, 5, 4));
+    }
+
+    @Test
+    void sessionDateIsPreviousBusinessDayBeforeOpen() {
+        assertThat(KR.sessionDate(at("2026-11-05T08:59:59+09:00"))).isEqualTo(LocalDate.of(2026, 11, 4));
+        assertThat(KR.sessionDate(at("2026-11-05T09:00:00+09:00"))).isEqualTo(LocalDate.of(2026, 11, 5));
+        assertThat(KR.sessionDate(at("2026-11-05T16:00:00+09:00"))).isEqualTo(LocalDate.of(2026, 11, 5));
+    }
+
+    @Test
+    void sessionDateOnHolidayIsPreviousBusinessDay() {
+        MarketCalendar holiday =
+                new MarketCalendar(Market.KR, LocalDate.of(2026, 5, 5), null, null, LocalDate.of(2026, 5, 4));
+        assertThat(holiday.sessionDate(at("2026-05-05T10:00:00+09:00"))).isEqualTo(LocalDate.of(2026, 5, 4));
+    }
+
+    @Test
+    void openAndCloseMustComeTogether() {
+        Instant open = at("2026-11-05T09:00:00+09:00");
+        LocalDate today = LocalDate.of(2026, 11, 5);
+        LocalDate prev = LocalDate.of(2026, 11, 4);
+        assertThatThrownBy(() -> new MarketCalendar(Market.KR, today, open, null, prev))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new MarketCalendar(Market.KR, today, null, open, prev))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

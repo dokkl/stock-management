@@ -25,4 +25,16 @@ class TossRateLimiterTest {
         limiter.acquire(TossRateLimiter.Group.MARKET_DATA);
         assertThat(Duration.ofNanos(System.nanoTime() - start)).isLessThan(Duration.ofMillis(500));
     }
+
+    @Test
+    void marketDataStaysUnderFifteenPerSecond() {
+        TossRateLimiter limiter = new TossRateLimiter();
+        long start = System.nanoTime();
+        for (int i = 0; i < 16; i++) {
+            limiter.acquire(TossRateLimiter.Group.MARKET_DATA);
+        }
+        assertThat(Duration.ofNanos(System.nanoTime() - start))
+                .as("공시 한도(초당 15회)를 넘지 않는다")
+                .isGreaterThanOrEqualTo(Duration.ofSeconds(1));
+    }
 }

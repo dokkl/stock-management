@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  보유 종목 행의 시세 셀(FR-009~FR-014). 등락은 색(class up|down|flat)과 기호(▲/▼/–)를 함께 쓰고,
+  화면 낭독기를 위해 "상승/하락/보합" 텍스트를 숨김 텍스트로 넣는다.
+  oob=true이면 GET /fragments/quotes 응답에서 기존 셀을 교체한다(hx-swap-oob).
+-->
+
+<!-- 현재가 + 전일 대비 + 시세 상태 -->
+<td th:fragment="price(h, oob)" th:id="'quote-' + ${h.id}" class="quote-cell"
+    th:attr="hx-swap-oob=${oob ? 'true' : null}">
+    <th:block th:if="${h.hasQuote()}" th:with="q=${h.quote}, dir=${q.direction().name()}">
+        <span class="price" th:text="${#money.price(q.price, h.currency)}">₩71,000</span>
+        <span th:class="'change ' + ${#strings.toLowerCase(dir)}">
+            <span class="visually-hidden" th:text="#{portfolio.quote.change} + ' ' + #{'portfolio.direction.' + ${dir}}">전일 대비 상승</span>
+            <span th:text="${#money.change(q.change(), q.changeRate(), h.currency)}">▲ 1,000 (+1.43%)</span>
+        </span>
+    </th:block>
+    <span class="quote-status" th:switch="${h.isSuspended() ? 'SUSPENDED' : h.quoteStatus.name()}">
+        <th:block th:case="'SUSPENDED'" th:text="#{portfolio.quote.suspended}">거래정지</th:block>
+        <th:block th:case="'LIVE'" th:text="#{portfolio.quote.live(${#money.time(h.quote.asOf)})}">14:32:05 기준</th:block>
+        <th:block th:case="'STALE'" th:text="#{portfolio.quote.stale(${#money.shortTime(h.quote.asOf)})}">지연 (14:20 기준)</th:block>
+        <th:block th:case="'PRE_OPEN'" th:text="#{portfolio.quote.preOpen}">장 시작 전</th:block>
+        <th:block th:case="'CLOSED'" th:text="#{portfolio.quote.closed}">장 마감</th:block>
+        <th:block th:case="*" th:text="#{portfolio.quote.unavailable}">시세 없음</th:block>
+    </span>
+</td>
+
+<!-- 평가손익 · 수익률 -->
+<td th:fragment="pnl(h, oob)" th:id="'pnl-' + ${h.id}" class="pnl-cell"
+    th:attr="hx-swap-oob=${oob ? 'true' : null}">
+    <th:block th:if="${h.hasQuote()}" th:with="v=${h.valuation()}, dir=${v.direction().name()}">
+        <span th:class="${#strings.toLowerCase(dir)}">
+            <span class="visually-hidden" th:text="#{'portfolio.pnl.' + ${dir}}">손실</span>
+            <span th:text="${#money.pnl(v.unrealizedPnl().amount(), v.returnRate(), h.currency)}">▼ ₩5,000 (−0.70%)</span>
+        </span>
+    </th:block>
+    <span th:unless="${h.hasQuote()}" class="flat">–</span>
+</td>
+
+<!-- GET /fragments/quotes: 모든 보유 종목의 시세 셀을 OOB로 교체한다 -->
+<th:block th:fragment="quotes">
+    <th:block th:each="account : ${dashboard.accounts()}">
+        <th:block th:each="h : ${account.holdings()}">
+            <td th:replace="~{:: price(${h}, true)}"></td>
+            <td th:replace="~{:: pnl(${h}, true)}"></td>
+        </th:block>
+    </th:block>
+</th:block>
+</body>
+</html>

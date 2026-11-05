@@ -39,6 +39,7 @@ Docker Compose다. 이 문서는 그 안에서 열려 있던 결정과 외부 �
   - 장 운영일: `GET /api/v1/market-calendar/{KR|US}`가 오늘·직전·다음 영업일을 준다(휴장일 목록 관리 불필요).
   - 호출 한도(초당, 클라이언트 × 그룹): `AUTH` 5, `STOCK_ALL` 1, `MARKET_INFO` 3, `MARKET_DATA` 15,
     `MARKET_DATA_CHART` 20. 공지 없이 조정될 수 있어 어댑터는 이보다 낮게(4/1/2/12/15) 호출한다.
+    거래정지 확인용 `STOCK` 그룹(`GET /api/v1/stocks`)은 공시 한도를 확인하지 못해 초당 2회로 둔다.
 - **Rationale**: 한 제공자로 한국·미국 시세, 일봉, 종목 목록, 장 운영일을 모두 받을 수 있다. 종목 목록이 JSON
   API라 파일 파싱이 필요 없다.
 - **Alternatives considered**:

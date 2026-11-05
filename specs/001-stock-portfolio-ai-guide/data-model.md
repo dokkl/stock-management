@@ -98,7 +98,8 @@ market_token (독립, 토스증권 토큰 캐시)
 |---|---|---|---|
 | security_id | BIGINT | PK, FK → security | 종목당 최신 1행 |
 | price | NUMERIC(19,4) | NOT NULL | 현재가(장 마감 후에는 종가) |
-| prev_close | NUMERIC(19,4) | NOT NULL | 전일 종가 |
+| prev_close | NUMERIC(19,4) | NOT NULL | 전일 종가(session_date 직전 거래일 종가) |
+| session_date | DATE | NOT NULL | 시세가 속한 거래일. 장 시작 전·휴장일에는 직전 영업일. 바뀔 때만 전일 종가를 다시 받는다 |
 | market_state | VARCHAR(12) | NOT NULL | `PRE_OPEN` \| `OPEN` \| `CLOSED` \| `HOLIDAY` |
 | as_of | TIMESTAMPTZ | NOT NULL | 제공자가 알려준 시세 기준 시각 |
 | fetched_at | TIMESTAMPTZ | NOT NULL | 마지막으로 성공적으로 받아온 시각 |

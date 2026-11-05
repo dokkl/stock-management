@@ -82,4 +82,18 @@ public final class Fixtures {
                         SELECT :accountId, id, 10000, 1, :now, :now FROM security WHERE name_ko LIKE '시드종목%'
                         """).param("accountId", accountId).param("now", NOW).update();
     }
+
+    /** 시세 행을 넣는다. sessionDate는 2026-11-05, as_of와 fetched_at은 같은 시각이다. */
+    public void quote(long securityId, String price, String prevClose, String marketState, Instant fetchedAt) {
+        jdbc.sql("""
+                        INSERT INTO quote (security_id, price, prev_close, session_date, market_state, as_of, fetched_at)
+                        VALUES (:securityId, :price, :prevClose, DATE '2026-11-05', :state, :fetchedAt, :fetchedAt)
+                        """)
+                .param("securityId", securityId)
+                .param("price", new BigDecimal(price))
+                .param("prevClose", new BigDecimal(prevClose))
+                .param("state", marketState)
+                .param("fetchedAt", Timestamp.from(fetchedAt))
+                .update();
+    }
 }
