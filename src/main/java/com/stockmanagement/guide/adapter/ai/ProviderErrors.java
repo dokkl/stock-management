@@ -21,6 +21,19 @@ final class ProviderErrors {
         return KeyCheck.UNAVAILABLE;
     }
 
+    /** 원인 사슬에서 공급자 오류 응답 본문을 찾는다(분류용, 로그에 남기지 않는다). 없으면 빈 문자열. */
+    static String errorBody(Throwable error) {
+        for (Throwable t = error; t != null; t = t.getCause()) {
+            if (t instanceof AnthropicServiceException e) {
+                return String.valueOf(e.body());
+            }
+            if (t instanceof OpenAIServiceException e) {
+                return String.valueOf(e.body());
+            }
+        }
+        return "";
+    }
+
     /** 원인 사슬에서 HTTP 상태 코드를 찾는다. 없으면(시간 초과·연결 실패) 비어 있다. */
     static OptionalInt statusCode(Throwable error) {
         for (Throwable t = error; t != null; t = t.getCause()) {

@@ -36,6 +36,7 @@
     <td th:text="${#money.quantity(h.quantity)}">10주</td>
     <td th:replace="~{fragments/quote-cell :: pnl(${h}, false)}"></td>
     <td>
+        <span th:replace="~{guide/button :: button(${h})}"></span>
         <button type="button" class="btn-link"
                 th:hx-get="@{/holdings/{id}/edit(id=${h.id})}" hx-target="closest tr" hx-swap="outerHTML"
                 th:aria-label="#{portfolio.holding.edit(${h.name})}" th:text="#{common.edit}">수정</button>

@@ -13,6 +13,9 @@
     <!-- 시세 셀 갱신(FR-012): 30초마다 받아 OOB로 교체한다. 본문은 바꾸지 않는다. -->
     <div id="quote-poller" th:hx-get="@{/fragments/quotes}" hx-trigger="every 30s" hx-swap="none"></div>
 
+    <!-- 가이드 진행·결과 영역(US3). 가이드 버튼의 hx-target이다. -->
+    <section id="guide-panel" class="guide-panel" aria-live="polite" th:aria-label="#{guide.panel}"></section>
+
     <div id="accounts">
         <div id="accounts-empty" th:if="${dashboard.isEmpty()}">
             <div th:replace="~{fragments/states :: empty('portfolio.empty')}"></div>

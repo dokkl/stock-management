@@ -1,5 +1,6 @@
 package com.stockmanagement.market.application.port;
 
+import com.stockmanagement.market.domain.DailyCandle;
 import com.stockmanagement.market.domain.Exchange;
 import com.stockmanagement.market.domain.Market;
 import com.stockmanagement.market.domain.MarketCalendar;
@@ -25,6 +26,11 @@ public interface MarketDataProvider {
 
     /** 기준일 직전 거래일의 종가(일봉). 해당 봉이 없으면 비어 있다. 호출 실패 시 예외를 던진다. */
     Optional<BigDecimal> fetchPreviousClose(String symbol, LocalDate referenceDate);
+
+    /** 최근 일봉(최신순), 최대 {@value #MAX_DAILY_CANDLES}개. 호출 실패 시 예외를 던진다. */
+    List<DailyCandle> fetchDailyCandles(String symbol, int days);
+
+    int MAX_DAILY_CANDLES = 120;
 
     /** 주어진 종목 중 거래정지된 종목. 제공자가 정지 여부를 알려주지 않는 종목은 포함하지 않는다. */
     Set<String> fetchSuspendedSymbols(List<String> symbols);

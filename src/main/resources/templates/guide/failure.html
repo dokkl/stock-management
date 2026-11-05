@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 실패(FR-020, FR-023e): 사유별 안내. 실패한 요청은 사용 횟수에서 빠진다. -->
+<div th:fragment="failure" class="guide-card state-error" role="alert" th:id="'guide-' + ${guide.id}">
+    <h2 th:text="#{guide.title(${guide.securityName})}">삼성전자 가이드</h2>
+    <p th:text="#{'guide.failure.' + ${guide.failureKind.name()}}">실패 사유</p>
+    <p th:if="${guide.failureKind.name() == 'CREDENTIAL_ERROR'}">
+        <a th:href="@{/settings/ai}" th:text="#{guide.goToSettings}">AI 설정으로 이동</a>
+    </p>
+</div>
+
+<!-- 키 없음: htmx는 HX-Redirect로 이동한다. 일반 요청을 위한 안내. -->
+<div th:fragment="no-credential" class="guide-card" role="alert">
+    <p th:text="#{guide.noCredential}">AI 키를 먼저 등록해 주세요.</p>
+    <a th:href="@{/settings/ai}" th:text="#{guide.goToSettings}">AI 설정으로 이동</a>
+</div>
+
+<div th:fragment="unavailable" class="guide-card state-error" role="alert">
+    <p th:text="#{'guide.unavailable.' + ${reason} + '.detail'}">거래정지 종목은 가이드를 요청할 수 없습니다.</p>
+</div>
+</body>
+</html>

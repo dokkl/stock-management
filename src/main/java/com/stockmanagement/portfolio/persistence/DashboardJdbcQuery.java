@@ -1,6 +1,7 @@
 package com.stockmanagement.portfolio.persistence;
 
 import com.stockmanagement.common.domain.Currency;
+import com.stockmanagement.common.domain.KstDate;
 import com.stockmanagement.market.domain.Exchange;
 import com.stockmanagement.market.domain.Quote;
 import com.stockmanagement.market.domain.QuoteStatus;
@@ -15,6 +16,7 @@ import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,7 +27,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** account LEFT JOIN holding JOIN security LEFT JOIN quote 단일 쿼리(N+1 없음). */
+/** account LEFT JOIN holding JOIN security LEFT JOIN quote LEFT JOIN 오늘 가이드 사용 수 — 단일 쿼리(N+1 없음). */
 @Repository
 class DashboardJdbcQuery implements DashboardQuery {
 
@@ -33,11 +35,15 @@ class DashboardJdbcQuery implements DashboardQuery {
             SELECT a.id AS account_id, a.name AS account_name,
                    h.id AS holding_id, h.avg_price, h.quantity,
                    s.id AS security_id, s.exchange, s.symbol, s.name_ko, s.name_en, s.currency, s.trading_status,
-                   q.price, q.prev_close, q.session_date, q.market_state, q.as_of, q.fetched_at
+                   q.price, q.prev_close, q.session_date, q.market_state, q.as_of, q.fetched_at,
+                   coalesce(gq.used, 0) AS guides_used
             FROM account a
             LEFT JOIN holding h ON h.account_id = a.id
             LEFT JOIN security s ON s.id = h.security_id
             LEFT JOIN quote q ON q.security_id = s.id
+            LEFT JOIN (SELECT security_id, count(*) AS used FROM guide_request
+                       WHERE usage_date = :today AND status <> 'FAILED' GROUP BY security_id) gq
+                   ON gq.security_id = s.id
             WHERE a.deleted_at IS NULL
             """;
     private static final String ORDER =
@@ -55,14 +61,17 @@ class DashboardJdbcQuery implements DashboardQuery {
 
     @Override
     public DashboardView load() {
-        return new DashboardView(
-                group(jdbc.sql(SELECT + ORDER).query(rowMapper()).list()));
+        return new DashboardView(group(jdbc.sql(SELECT + ORDER)
+                .param("today", today())
+                .query(rowMapper())
+                .list()));
     }
 
     @Override
     public Optional<AccountView> findAccount(long accountId) {
         List<Row> rows = jdbc.sql(SELECT + " AND a.id = :id" + ORDER)
                 .param("id", accountId)
+                .param("today", today())
                 .query(rowMapper())
                 .list();
         return group(rows).stream().findFirst();
@@ -72,6 +81,7 @@ class DashboardJdbcQuery implements DashboardQuery {
     public Optional<HoldingView> findHolding(long holdingId) {
         return jdbc.sql(SELECT + " AND h.id = :id")
                 .param("id", holdingId)
+                .param("today", today())
                 .query(rowMapper())
                 .optional()
                 .map(Row::holding);
@@ -90,6 +100,11 @@ class DashboardJdbcQuery implements DashboardQuery {
         return names.entrySet().stream()
                 .map(e -> new AccountView(e.getKey(), e.getValue(), List.copyOf(holdings.get(e.getKey()))))
                 .toList();
+    }
+
+    /** 가이드 한도 집계 날짜(KST). */
+    private LocalDate today() {
+        return KstDate.today(clock);
     }
 
     /** 시세 상태는 조회 시각 기준이므로 쿼리마다 시각을 한 번 정해 모든 행에 같은 기준을 쓴다. */
@@ -119,7 +134,8 @@ class DashboardJdbcQuery implements DashboardQuery {
                 rs.getBigDecimal("avg_price"),
                 rs.getBigDecimal("quantity"),
                 quote,
-                QuoteStatus.of(quote, now, staleAfter));
+                QuoteStatus.of(quote, now, staleAfter),
+                rs.getInt("guides_used"));
     }
 
     private record Row(long accountId, String accountName, HoldingView holding) {}

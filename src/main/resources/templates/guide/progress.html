@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 진행 중: 2초마다 상태를 받아 자기 자신을 바꾼다. 완료·실패 프래그먼트에는 폴링이 없어 자연히 멈춘다. -->
+<div th:fragment="progress" class="guide-card" th:id="'guide-' + ${guide.id}"
+     th:hx-get="@{/guides/{id}/status(id=${guide.id})}" hx-trigger="every 2s" hx-swap="outerHTML" aria-busy="true">
+    <h2 th:text="#{guide.title(${guide.securityName})}">삼성전자 가이드</h2>
+    <p class="state" th:text="#{guide.progress(${guide.provider.displayName()})}">Claude가 분석하고 있습니다…</p>
+</div>
+</body>
+</html>

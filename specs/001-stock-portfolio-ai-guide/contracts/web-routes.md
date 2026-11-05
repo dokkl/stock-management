@@ -68,6 +68,7 @@
 | POST | `/holdings/{id}/guides` | 가이드 요청(슬롯 예약 + 비동기 실행) | 아래 표 |
 | GET | `/guides/{id}/status` | 진행 상태 폴링(htmx `every 2s`) | `PENDING`: 200 진행 프래그먼트(폴링 계속) / `SUCCEEDED`: 200 결과 프래그먼트 + `HX-Trigger: guide-quota-changed` / `FAILED`: 200 오류 프래그먼트(폴링 중단) |
 | GET | `/guides/{id}` | 가이드 상세(결과 전체) | 200 / 404 |
+| GET | `/holdings/{id}/guide-button` | 가이드 버튼(남은 횟수·비활성 사유) 프래그먼트. `guide-quota-changed-{securityId}` 이벤트로 다시 받는다 | 200 / 404 |
 | GET | `/securities/{id}/guides?page=` | 종목별 가이드 기록, 최신순, 20건 페이지 | 200 |
 
 ### `POST /holdings/{id}/guides` 응답
@@ -80,6 +81,9 @@
 | 거래정지·상장폐지 종목 | 409 | 비활성 안내 |
 | holding 없음 | 404 | |
 
+- 202와 `/status`의 SUCCEEDED·FAILED 응답은 `HX-Trigger: guide-quota-changed, guide-quota-changed-{securityId}`를 보낸다.
+  버튼은 종목별 이벤트만 듣는다(같은 종목을 여러 계좌에 보유하면 그 행들이 함께 갱신된다).
+- 시세가 아직 없는 종목은 409로 안내한다.
 - 같은 종목에서 `PENDING`이 이미 있으면 새 슬롯을 잡지 않고, 기존 요청의 진행 프래그먼트를
   반환한다(202). 연속 클릭을 이렇게 방지한다(US3 시나리오 7).
 - 실패 프래그먼트 문구는 `failure_kind`에 따라 다르다.

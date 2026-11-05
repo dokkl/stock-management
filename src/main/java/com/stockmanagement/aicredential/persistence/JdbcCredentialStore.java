@@ -4,6 +4,7 @@ import com.stockmanagement.aicredential.application.EncryptedApiKey;
 import com.stockmanagement.aicredential.application.StoredCredential;
 import com.stockmanagement.aicredential.application.port.CredentialStore;
 import com.stockmanagement.aicredential.domain.AiProvider;
+import com.stockmanagement.common.crypto.EncryptedSecret;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
@@ -28,6 +29,15 @@ class JdbcCredentialStore implements CredentialStore {
                         rs.getString("last4"),
                         rs.getTimestamp("verified_at").toInstant()))
                 .list();
+    }
+
+    @Override
+    public Optional<EncryptedSecret> findSecret(AiProvider provider) {
+        return jdbc.sql("SELECT ciphertext, iv, key_version FROM ai_credential WHERE provider = :provider")
+                .param("provider", provider.name())
+                .query((rs, n) ->
+                        new EncryptedSecret(rs.getBytes("ciphertext"), rs.getBytes("iv"), rs.getShort("key_version")))
+                .optional();
     }
 
     @Override

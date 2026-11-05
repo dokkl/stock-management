@@ -23,6 +23,11 @@ public final class AiStubs {
              "choices":[{"index":0,"message":{"role":"assistant","content":"pong"},"finish_reason":"length"}],
              "usage":{"prompt_tokens":1,"completion_tokens":1,"total_tokens":2}}""";
 
+    /** 출력 스키마에 맞는 가이드 JSON. */
+    public static final String GUIDE_JSON = "{\"summary\":\"최근 60일 동안 완만하게 올랐습니다.\","
+            + "\"diagnosis\":\"평단가보다 0.7% 낮습니다.\",\"action\":\"HOLD\","
+            + "\"rationale\":\"이동평균 위에서 움직이고 있습니다.\",\"risks\":[\"반도체 업황 변동\",\"환율\"]}";
+
     private final WireMockServer server;
 
     public AiStubs(WireMockServer server) {
@@ -52,6 +57,23 @@ public final class AiStubs {
 
     public void openAiResponds(int status) {
         server.stubFor(post(urlPathEqualTo(OPENAI_PATH)).atPriority(10).willReturn(json(status, error(status))));
+    }
+
+    /** OpenAI가 주어진 본문(text)으로 가이드를 응답한다. delayMillis > 0이면 그만큼 늦게 응답한다. */
+    public void openAiGuide(String text, String model, int delayMillis) {
+        server.stubFor(post(urlPathEqualTo(OPENAI_PATH))
+                .willReturn(json(
+                                200,
+                                "{\"id\":\"chatcmpl-1\",\"object\":\"chat.completion\",\"created\":1,"
+                                        + "\"model\":\"" + model
+                                        + "\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\","
+                                        + "\"content\":" + quote(text) + "},\"finish_reason\":\"stop\"}],"
+                                        + "\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":10,\"total_tokens\":20}}")
+                        .withFixedDelay(delayMillis)));
+    }
+
+    public static String quote(String text) {
+        return "\"" + text.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n") + "\"";
     }
 
     /** 공급자가 키를 거부하는 기본 응답(우선순위가 낮아 accepts 스텁이 먼저 맞는다). */

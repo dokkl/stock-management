@@ -17,7 +17,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 /**
  * SC-009: 등록 성공·검증 실패·일시 장애 흐름에서 키 원문이 로그, 응답 본문·헤더, DB 텍스트 컬럼 어디에도 없다.
- * (가이드 실패 흐름은 US3에서 이 테스트에 추가한다.)
+ * 가이드 실패 흐름(키 인증 실패)에서도 같다.
  */
 @ExtendWith(OutputCaptureExtension.class)
 class ApiKeyLeakIT extends IntegrationTestBase {
@@ -55,6 +55,35 @@ class ApiKeyLeakIT extends IntegrationTestBase {
             }
             assertThat(textColumnsContaining(key)).as("DB 텍스트 컬럼").isZero();
         }
+    }
+
+    @Test
+    void keyNeverAppearsDuringFailedGuide(CapturedOutput output) throws Exception {
+        ai.anthropicAccepts(VALID);
+        register("ANTHROPIC", VALID);
+        com.stockmanagement.support.GuideFixture g =
+                new com.stockmanagement.support.GuideFixture(jdbc).samsungHolding(clock.instant());
+        WIREMOCK.resetAll();
+        com.stockmanagement.support.GuideFixture.stubMarket(WIREMOCK);
+        ai.anthropicResponds(401);
+
+        MvcResult request = mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(
+                                "/holdings/" + g.holding + "/guides")
+                        .with(owner())
+                        .with(csrf())
+                        .header("HX-Request", "true"))
+                .andReturn();
+        long guideId = g.latestGuideId();
+        assertThat(g.awaitTerminal(guideId, java.time.Duration.ofSeconds(10))).isEqualTo("FAILED");
+        MvcResult status = mockMvc.perform(get("/guides/" + guideId + "/status").with(owner()))
+                .andReturn();
+
+        assertThat(output.getAll()).doesNotContain(VALID);
+        assertThat(request.getResponse().getContentAsString()).doesNotContain(VALID);
+        assertThat(status.getResponse().getContentAsString())
+                .contains("AI 키를 확인해 주세요")
+                .doesNotContain(VALID);
+        assertThat(textColumnsContaining(VALID)).isZero();
     }
 
     @Test
