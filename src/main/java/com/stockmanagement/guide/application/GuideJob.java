@@ -5,6 +5,7 @@ import com.stockmanagement.common.domain.Currency;
 import com.stockmanagement.guide.domain.GuideStatus;
 import com.stockmanagement.market.domain.Market;
 import com.stockmanagement.market.domain.TradingStatus;
+import com.stockmanagement.user.domain.UserId;
 import java.math.BigDecimal;
 import java.time.Instant;
 
@@ -15,6 +16,7 @@ import java.time.Instant;
  */
 public record GuideJob(
         long id,
+        UserId userId,
         GuideStatus status,
         AiProvider provider,
         String symbol,

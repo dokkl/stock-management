@@ -37,5 +37,7 @@
   --radius-md: 8px;
   --focus-ring: 0 0 0 3px var(--color-focus);
   --shadow-md: 0 4px 12px rgb(0 0 0 / 15%);
+  --color-kakao: #FEE500;
+  --color-kakao-text: #191919;
   --color-backdrop: rgb(0 0 0 / 40%);
 }

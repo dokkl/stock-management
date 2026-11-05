@@ -8,6 +8,8 @@ import com.stockmanagement.portfolio.application.port.PortfolioStore;
 import com.stockmanagement.portfolio.domain.DuplicateHoldingException;
 import com.stockmanagement.portfolio.domain.HoldingLimitPolicy;
 import com.stockmanagement.portfolio.domain.HoldingTerms;
+import com.stockmanagement.user.application.port.UserStore;
+import com.stockmanagement.user.domain.UserId;
 import java.math.BigDecimal;
 import java.time.Clock;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,16 +22,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class HoldingService {
 
     private final PortfolioStore store;
+    private final UserStore users;
     private final SecurityCatalog securities;
     private final HoldingLimitPolicy limitPolicy;
     private final Clock clock;
 
     public HoldingService(
             PortfolioStore store,
+            UserStore users,
             SecurityCatalog securities,
             Clock clock,
             @Value("${app.portfolio.max-holdings:20}") int maxHoldings) {
         this.store = store;
+        this.users = users;
         this.securities = securities;
         this.clock = clock;
         this.limitPolicy = new HoldingLimitPolicy(maxHoldings);
@@ -40,16 +45,17 @@ public class HoldingService {
     }
 
     @Transactional
-    public long add(long accountId, Long securityId, BigDecimal avgPrice, BigDecimal quantity) {
-        if (!store.activeAccountExists(accountId)) {
+    public long add(UserId userId, long accountId, Long securityId, BigDecimal avgPrice, BigDecimal quantity) {
+        users.lock(userId);
+        if (!store.activeAccountExists(userId, accountId)) {
             throw new ResourceNotFoundException("account", accountId);
         }
         Security security = requireSecurity(securityId);
         HoldingTerms terms = HoldingTerms.of(security, avgPrice, quantity);
-        store.findHoldingId(accountId, security.id()).ifPresent(existing -> {
+        store.findHoldingId(userId, accountId, security.id()).ifPresent(existing -> {
             throw new DuplicateHoldingException(existing);
         });
-        limitPolicy.checkCanAdd(store.countHoldings());
+        limitPolicy.checkCanAdd(store.countHoldings(userId));
         try {
             return store.insertHolding(accountId, security.id(), terms, clock.instant());
         } catch (DuplicateKeyException e) {
@@ -59,16 +65,16 @@ public class HoldingService {
     }
 
     @Transactional
-    public void update(long holdingId, BigDecimal avgPrice, BigDecimal quantity) {
-        HoldingRef ref =
-                store.findHolding(holdingId).orElseThrow(() -> new ResourceNotFoundException("holding", holdingId));
+    public void update(UserId userId, long holdingId, BigDecimal avgPrice, BigDecimal quantity) {
+        HoldingRef ref = store.findHolding(userId, holdingId)
+                .orElseThrow(() -> new ResourceNotFoundException("holding", holdingId));
         Security security = requireSecurity(ref.securityId());
         store.updateHolding(holdingId, HoldingTerms.of(security, avgPrice, quantity), clock.instant());
     }
 
     @Transactional
-    public void delete(long holdingId) {
-        if (!store.deleteHolding(holdingId)) {
+    public void delete(UserId userId, long holdingId) {
+        if (!store.deleteHolding(userId, holdingId)) {
             throw new ResourceNotFoundException("holding", holdingId);
         }
     }

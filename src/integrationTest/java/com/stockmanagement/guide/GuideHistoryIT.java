@@ -48,6 +48,7 @@ class GuideHistoryIT extends IntegrationTestBase {
     /** 오늘(테스트 시계) 기준으로 성공한 가이드 1건을 남기고, 다음 기록을 위해 시계를 하루 넘긴다. */
     private long succeeded(String overall) {
         GuideReservation reservation = new GuideReservation(
+                createOwner(),
                 samsung,
                 holding,
                 account,
@@ -80,6 +81,7 @@ class GuideHistoryIT extends IntegrationTestBase {
         succeeded("첫 번째 판단");
         succeeded("두 번째 판단");
         long failed = store.reserve(new GuideReservation(
+                        createOwner(),
                         samsung,
                         holding,
                         account,

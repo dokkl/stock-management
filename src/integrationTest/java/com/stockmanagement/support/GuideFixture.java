@@ -46,9 +46,13 @@ public final class GuideFixture {
     }
 
     /** OpenAI 키를 저장하고 선택한다(소유자 행이 있어야 한다). */
-    public static void storeOpenAiKey(CredentialStore store, CredentialCipher cipher, Instant now) {
-        store.save(AiProvider.OPENAI, cipher.encrypt(ApiKey.of(OPENAI_KEY)), now);
-        store.select(AiProvider.OPENAI);
+    public static void storeOpenAiKey(
+            CredentialStore store,
+            CredentialCipher cipher,
+            Instant now,
+            com.stockmanagement.user.domain.UserId userId) {
+        store.save(userId, AiProvider.OPENAI, cipher.encrypt(ApiKey.of(OPENAI_KEY)), now);
+        store.select(userId, AiProvider.OPENAI);
     }
 
     /** 토큰, 일봉(최근 3일, 거래량 포함), 국내 투자자별 매매동향·공매도 대역. */

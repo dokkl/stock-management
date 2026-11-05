@@ -38,6 +38,7 @@ class GuideQuotaConcurrencyIT extends IntegrationTestBase {
         long holding = f.holding(account, samsung, "71500", "10");
         Instant now = clock.instant();
         GuideReservation reservation = new GuideReservation(
+                createOwner(),
                 samsung,
                 holding,
                 account,

@@ -6,6 +6,7 @@ import com.stockmanagement.guide.application.GuideHistoryEntry;
 import com.stockmanagement.guide.application.GuideHistoryPage;
 import com.stockmanagement.guide.application.port.GuideHistoryQuery;
 import com.stockmanagement.guide.domain.GuideContent;
+import com.stockmanagement.user.domain.UserId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
@@ -32,7 +33,7 @@ class GuideHistoryJdbcQuery implements GuideHistoryQuery {
     }
 
     @Override
-    public Optional<GuideHistoryPage> find(long securityId, int page) {
+    public Optional<GuideHistoryPage> find(UserId userId, long securityId, int page) {
         Optional<String[]> security = jdbc.sql(
                         "SELECT symbol, coalesce(name_ko, name_en) AS name FROM security WHERE id = :id")
                 .param("id", securityId)
@@ -49,10 +50,11 @@ class GuideHistoryJdbcQuery implements GuideHistoryQuery {
                                g.quantity_snapshot, g.return_rate_snapshot, g.currency
                         FROM guide_request g
                         JOIN account a ON a.id = g.account_id
-                        WHERE g.security_id = :securityId AND g.status = 'SUCCEEDED'
+                        WHERE g.user_id = :userId AND g.security_id = :securityId AND g.status = 'SUCCEEDED'
                         ORDER BY g.requested_at DESC, g.id DESC
                         LIMIT :limit OFFSET :offset
                         """)
+                .param("userId", userId.value())
                 .param("securityId", securityId)
                 .param("limit", GuideHistoryPage.PAGE_SIZE + 1)
                 .param("offset", safePage * GuideHistoryPage.PAGE_SIZE)

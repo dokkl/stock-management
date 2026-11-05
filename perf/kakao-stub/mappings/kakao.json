@@ -1,0 +1,32 @@
+{
+  "mappings": [
+    {
+      "request": { "method": "GET", "urlPath": "/oauth/authorize" },
+      "response": {
+        "status": 302,
+        "headers": {
+          "Location": "{{request.query.redirect_uri}}?code=perf-code-{{#if request.headers.X-Perf-User}}{{request.headers.X-Perf-User}}{{else}}900001{{/if}}&state={{urlEncode request.query.state}}"
+        },
+        "transformers": ["response-template"]
+      }
+    },
+    {
+      "request": { "method": "POST", "urlPath": "/oauth/token" },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "body": "{{regexExtract request.body 'perf-code-([0-9]+)' 'm'}}{\"access_token\":\"perf-token-{{m.0}}\",\"token_type\":\"bearer\",\"expires_in\":21599}",
+        "transformers": ["response-template"]
+      }
+    },
+    {
+      "request": { "method": "GET", "urlPath": "/v2/user/me" },
+      "response": {
+        "status": 200,
+        "headers": { "Content-Type": "application/json" },
+        "body": "{{regexExtract request.headers.Authorization 'perf-token-([0-9]+)' 'm'}}{\"id\":{{m.0}},\"kakao_account\":{\"profile\":{\"nickname\":\"성능사용자\"}}}",
+        "transformers": ["response-template"]
+      }
+    }
+  ]
+}

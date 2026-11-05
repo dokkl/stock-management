@@ -33,6 +33,7 @@ class StaleGuideSweeperIT extends IntegrationTestBase {
         long holding = f.holding(account, samsung, "71500", "10");
         Instant start = clock.instant();
         GuideReservation reservation = new GuideReservation(
+                createOwner(),
                 samsung,
                 holding,
                 account,
@@ -50,7 +51,7 @@ class StaleGuideSweeperIT extends IntegrationTestBase {
 
         clock.advance(Duration.ofMinutes(3));
         sweeper.sweep();
-        assertThat(store.find(old).orElseThrow().isPending())
+        assertThat(store.find(createOwner(), old).orElseThrow().isPending())
                 .as("정확히 3분은 아직 정체가 아니다")
                 .isTrue();
 

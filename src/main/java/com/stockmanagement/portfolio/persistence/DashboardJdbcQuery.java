@@ -11,6 +11,7 @@ import com.stockmanagement.portfolio.application.DashboardQuery;
 import com.stockmanagement.portfolio.application.DashboardView;
 import com.stockmanagement.portfolio.application.DashboardView.AccountView;
 import com.stockmanagement.portfolio.application.DashboardView.HoldingView;
+import com.stockmanagement.user.domain.UserId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Clock;
@@ -42,9 +43,9 @@ class DashboardJdbcQuery implements DashboardQuery {
             LEFT JOIN security s ON s.id = h.security_id
             LEFT JOIN quote q ON q.security_id = s.id
             LEFT JOIN (SELECT security_id, count(*) AS used FROM guide_request
-                       WHERE usage_date = :today AND status <> 'FAILED' GROUP BY security_id) gq
+                       WHERE user_id = :userId AND usage_date = :today AND status <> 'FAILED' GROUP BY security_id) gq
                    ON gq.security_id = s.id
-            WHERE a.deleted_at IS NULL
+            WHERE a.deleted_at IS NULL AND a.user_id = :userId
             """;
     private static final String ORDER =
             " ORDER BY a.name COLLATE \"C\", a.id, coalesce(s.name_ko, s.name_en) COLLATE \"C\", h.id";
@@ -60,28 +61,31 @@ class DashboardJdbcQuery implements DashboardQuery {
     }
 
     @Override
-    public DashboardView load() {
+    public DashboardView load(UserId userId) {
         return new DashboardView(group(jdbc.sql(SELECT + ORDER)
                 .param("today", today())
+                .param("userId", userId.value())
                 .query(rowMapper())
                 .list()));
     }
 
     @Override
-    public Optional<AccountView> findAccount(long accountId) {
+    public Optional<AccountView> findAccount(UserId userId, long accountId) {
         List<Row> rows = jdbc.sql(SELECT + " AND a.id = :id" + ORDER)
                 .param("id", accountId)
                 .param("today", today())
+                .param("userId", userId.value())
                 .query(rowMapper())
                 .list();
         return group(rows).stream().findFirst();
     }
 
     @Override
-    public Optional<HoldingView> findHolding(long holdingId) {
+    public Optional<HoldingView> findHolding(UserId userId, long holdingId) {
         return jdbc.sql(SELECT + " AND h.id = :id")
                 .param("id", holdingId)
                 .param("today", today())
+                .param("userId", userId.value())
                 .query(rowMapper())
                 .optional()
                 .map(Row::holding);

@@ -80,6 +80,19 @@ class QuoteRefreshSchedulerIT extends IntegrationTestBase {
     }
 
     @Test
+    void sameSecurityHeldByTwoUsersIsFetchedOnce() {
+        long other = f.user(8002, "다른 사용자");
+        f.holding(f.account(other, "다른 계좌"), samsung, "65000", "3");
+
+        scheduler.refresh();
+
+        WIREMOCK.verify(
+                1, getRequestedFor(urlPathEqualTo("/api/v1/prices")).withQueryParam("symbols", equalTo("005930")));
+        assertThat(jdbc.sql("SELECT count(*) FROM quote").query(Long.class).single())
+                .isEqualTo(1);
+    }
+
+    @Test
     void previousCloseIsFetchedOncePerSession() {
         scheduler.refresh();
         clock.advance(Duration.ofSeconds(30));

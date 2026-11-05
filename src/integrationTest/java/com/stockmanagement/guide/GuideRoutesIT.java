@@ -45,7 +45,7 @@ class GuideRoutesIT extends IntegrationTestBase {
     void setUp() {
         owner();
         g = new GuideFixture(jdbc).samsungHolding(clock.instant());
-        GuideFixture.storeOpenAiKey(credentialStore, cipher, clock.instant());
+        GuideFixture.storeOpenAiKey(credentialStore, cipher, clock.instant(), createOwner());
         GuideFixture.stubMarket(WIREMOCK);
         ai.openAiGuide(AiStubs.GUIDE_JSON, "gpt-5-2026-08-01", 0);
     }
@@ -142,10 +142,11 @@ class GuideRoutesIT extends IntegrationTestBase {
     @Test
     void claudeGuideShowsVerifiedIssuesWithSourceLinks() throws Exception {
         credentialStore.save(
+                createOwner(),
                 com.stockmanagement.aicredential.domain.AiProvider.ANTHROPIC,
                 cipher.encrypt(com.stockmanagement.aicredential.domain.ApiKey.of("sk-ant-guide-test-key-8888")),
                 clock.instant());
-        credentialStore.select(com.stockmanagement.aicredential.domain.AiProvider.ANTHROPIC);
+        credentialStore.select(createOwner(), com.stockmanagement.aicredential.domain.AiProvider.ANTHROPIC);
         ai.anthropicGuideWithSearch(
                 AiStubs.comprehensiveJson("https://news.example.com/chip", "https://made-up.example.com/x"),
                 "https://news.example.com/chip");
@@ -207,7 +208,7 @@ class GuideRoutesIT extends IntegrationTestBase {
     @Test
     void missingKeyRedirectsToSettings() throws Exception {
         jdbc.sql("DELETE FROM ai_credential").update();
-        jdbc.sql("UPDATE owner SET selected_ai_provider = NULL").update();
+        jdbc.sql("UPDATE app_user SET selected_ai_provider = NULL").update();
 
         requestGuide(g.holding)
                 .andExpect(status().isConflict())

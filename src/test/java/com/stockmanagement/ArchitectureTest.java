@@ -79,6 +79,17 @@ class ArchitectureTest {
     }
 
     @Test
+    void applicationAndDomainDoNotDependOnSpringSecurity() {
+        noClasses()
+                .that()
+                .resideInAnyPackage("..application..", "..domain..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage("org.springframework.security..")
+                .check(classes);
+    }
+
+    @Test
     void portsAreInterfaces() {
         classes()
                 .that()

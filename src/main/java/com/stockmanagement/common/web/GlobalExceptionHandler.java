@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.ui.Model;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -24,6 +25,18 @@ public class GlobalExceptionHandler {
     public String notFound(Exception e, HttpServletRequest request, HttpServletResponse response, Model model) {
         log.debug("Not found: {} {}", request.getMethod(), request.getRequestURI(), e);
         response.setStatus(HttpStatus.NOT_FOUND.value());
+        return render(request, response, model, "error.notFound", "error/404");
+    }
+
+    /** 지원하지 않는 HTTP 메서드는 서버 오류가 아니라 405다(예: 제거된 비밀번호 로그인 POST /login). */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public String methodNotAllowed(
+            HttpRequestMethodNotSupportedException e,
+            HttpServletRequest request,
+            HttpServletResponse response,
+            Model model) {
+        log.debug("Method not allowed: {} {}", request.getMethod(), request.getRequestURI());
+        response.setStatus(HttpStatus.METHOD_NOT_ALLOWED.value());
         return render(request, response, model, "error.notFound", "error/404");
     }
 

@@ -37,10 +37,10 @@ class GuideHistoryE2E extends E2ETestBase {
                 "{\"summary\":\"요약\",\"diagnosis\":\"진단\",\"supplyDemand\":\"수급\",\"issues\":[]," + "\"overall\":\""
                         + overall + "\",\"action\":\"" + action + "\",\"rationale\":\"근거\",\"risks\":[\"위험\"]}";
         jdbc.sql("""
-                        INSERT INTO guide_request (security_id, holding_id, account_id, usage_date, slot, status, provider,
+                        INSERT INTO guide_request (user_id, security_id, holding_id, account_id, usage_date, slot, status, provider,
                             model, account_name_snapshot, price_snapshot, avg_price_snapshot, quantity_snapshot,
                             return_rate_snapshot, currency, content, requested_at, completed_at)
-                        VALUES (:s, :h, :a, CAST(:at AS date), 1, 'SUCCEEDED', 'ANTHROPIC', 'claude-sonnet-5-5', '키움 일반',
+                        VALUES ((SELECT user_id FROM account WHERE id = :a), :s, :h, :a, CAST(:at AS date), 1, 'SUCCEEDED', 'ANTHROPIC', 'claude-sonnet-5-5', '키움 일반',
                             71000, 71500, 10, -0.0070, 'KRW', CAST(:content AS jsonb), :at, :at)
                         """)
                 .param("s", samsung)
