@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -89,6 +90,18 @@ public class CredentialService {
                     .findFirst()
                     .orElse(null));
         }
+    }
+
+    /** 가이드에 쓸 공급자. 키가 하나도 없으면 비어 있다(FR-023d). */
+    @Transactional(readOnly = true)
+    public Optional<AiProvider> selectedProvider() {
+        return store.selectedProvider();
+    }
+
+    /** 공급자 키 원문. 가이드 실행 직전에만 꺼낸다. 그 사이 키가 삭제되었으면 비어 있다. */
+    @Transactional(readOnly = true)
+    public Optional<ApiKey> keyFor(AiProvider provider) {
+        return store.findSecret(provider).map(cipher::decrypt);
     }
 
     /** 키가 등록된 공급자만 선택할 수 있다. */

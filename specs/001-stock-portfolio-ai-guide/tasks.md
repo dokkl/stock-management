@@ -417,46 +417,46 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T092 [P] [US3] `GuideRequest` 상태 전이 단위 테스트를 `UT/guide/domain/GuideRequestTest.java`에 작성한다:
+- [X] T092 [P] [US3] `GuideRequest` 상태 전이 단위 테스트를 `UT/guide/domain/GuideRequestTest.java`에 작성한다:
   - 허용: PENDING → SUCCEEDED, PENDING → FAILED
   - 종료 상태에서 전이하면 예외(FR-028)
   - `usage_date`는 요청 시작 시각의 KST 날짜(23:59:59.9 KST 요청은 그날)
-- [ ] T093 [P] [US3] `GuideQuota` 단위 테스트를 `UT/guide/domain/GuideQuotaTest.java`에 작성한다: 남은 횟수 = 2 − 비실패 건수, 하한 0. 초기화 시각은 다음 날 00:00 KST다
-- [ ] T094 [P] [US3] `GuidePromptBuilder` 단위 테스트를 `UT/guide/domain/GuidePromptBuilderTest.java`에 작성한다:
+- [X] T093 [P] [US3] `GuideQuota` 단위 테스트를 `UT/guide/domain/GuideQuotaTest.java`에 작성한다: 남은 횟수 = 2 − 비실패 건수, 하한 0. 초기화 시각은 다음 날 00:00 KST다
+- [X] T094 [P] [US3] `GuidePromptBuilder` 단위 테스트를 `UT/guide/domain/GuidePromptBuilderTest.java`에 작성한다:
   - 60거래일 종가로 20/60일 이동평균, 최고·최저, 일간 수익률 표준편차 계산
   - 평단가·수량·평가손익·수익률 포함
   - **계좌명은 포함하지 않음**
-- [ ] T095 [P] [US3] 슬롯 예약 통합 테스트를 `IT/guide/GuideSlotReservationIT.java`에 작성한다:
+- [X] T095 [P] [US3] 슬롯 예약 통합 테스트를 `IT/guide/GuideSlotReservationIT.java`에 작성한다:
   - slot 1 → slot 2 → 세 번째는 `QuotaExceeded`
   - FAILED 처리 후 해당 슬롯 재사용 가능
   - 다른 종목은 독립
   - 같은 종목을 여러 계좌에 보유해도 합산
   - 자정 경계: `MutableClock` 23:59 KST 요청 → 다음 날 00:00 이후에도 2회 사용 가능
-- [ ] T096 [P] [US3] 동시성 통합 테스트를 `IT/guide/GuideQuotaConcurrencyIT.java`에 작성한다(FR-021, SC-006). 같은 종목에 동시 요청 20건(가상 스레드, `CountDownLatch`)을 보내고, 100회 반복해 비실패 행이 항상 2개 이하인지 확인한다
-- [ ] T097 [P] [US3] 가이드 생성 어댑터 통합 테스트를 `IT/guide/AiGenerateGuideIT.java`에 작성한다(WireMock):
+- [X] T096 [P] [US3] 동시성 통합 테스트를 `IT/guide/GuideQuotaConcurrencyIT.java`에 작성한다(FR-021, SC-006). 같은 종목에 동시 요청 20건(가상 스레드, `CountDownLatch`)을 보내고, 100회 반복해 비실패 행이 항상 2개 이하인지 확인한다
+- [X] T097 [P] [US3] 가이드 생성 어댑터 통합 테스트를 `IT/guide/AiGenerateGuideIT.java`에 작성한다(WireMock):
   - 스키마에 맞는 JSON이면 `Generated(GuideContent)`
   - 스키마 불일치면 `Generated(rawText)`
   - 401·402·잔액 부족은 `CredentialError`
   - 60초 타임아웃·429·5xx는 `TransientError`
   - 응답 모델명 추출
-- [ ] T098 [P] [US3] 가이드 라우트 계약 테스트를 `IT/guide/GuideRoutesIT.java`에 작성한다:
+- [X] T098 [P] [US3] 가이드 라우트 계약 테스트를 `IT/guide/GuideRoutesIT.java`에 작성한다:
   - `POST /holdings/{id}/guides`: 202(진행 프래그먼트 `hx-trigger="every 2s"`) / 409+`HX-Redirect: /settings/ai`(키 없음) / 429(한도, "내일 00:00 (KST)") / 409(거래정지·상장폐지) / 404
   - PENDING 중 재요청은 기존 요청 프래그먼트 202(새 슬롯 없음)
   - `GET /guides/{id}/status`: PENDING / SUCCEEDED(`HX-Trigger: guide-quota-changed`) / FAILED(failure_kind별 문구)
   - 실패 시 남은 횟수 유지
   - 미인증 401, `GET /guides/{id}` 없는 id 404
-- [ ] T099 [P] [US3] `StaleGuideSweeper` 통합 테스트를 `IT/guide/StaleGuideSweeperIT.java`에 작성한다: 3분 넘은 PENDING은 FAILED(`TRANSIENT_ERROR`)가 되고 슬롯이 반환된다
-- [ ] T100 [P] [US3] 응답 시간 예산 테스트를 `IT/guide/GuideRequestLatencyIT.java`에 작성한다. AI 대역 지연을 10초로 둬도 `POST /holdings/{id}/guides`의 응답 시간이 500ms 미만인지 확인한다(헌법 원칙 IV, research R8)
-- [ ] T101 [P] [US3] E2E 시나리오를 `E2E/guide/GuideRequestE2E.java`에 작성한다:
+- [X] T099 [P] [US3] `StaleGuideSweeper` 통합 테스트를 `IT/guide/StaleGuideSweeperIT.java`에 작성한다: 3분 넘은 PENDING은 FAILED(`TRANSIENT_ERROR`)가 되고 슬롯이 반환된다
+- [X] T100 [P] [US3] 응답 시간 예산 테스트를 `IT/guide/GuideRequestLatencyIT.java`에 작성한다. AI 대역 지연을 10초로 둬도 `POST /holdings/{id}/guides`의 응답 시간이 500ms 미만인지 확인한다(헌법 원칙 IV, research R8)
+- [X] T101 [P] [US3] E2E 시나리오를 `E2E/guide/GuideRequestE2E.java`에 작성한다:
   - quickstart S5 1~4단계(WireMock AI): 결과에 요약·진단·행동·근거·위험·면책 문구·"OpenAI · <모델>" 표시
   - 버튼 `aria-busy`, 2회 후 비활성
   - axe 위반 0건
 
-- [ ] T102 [P] [US3] 일봉 조회 통합 테스트를 `IT/market/TossDailyCandlesIT.java`에 작성한다(WireMock `GET /api/v1/candles?interval=1d`): 최신순 응답 정렬, 최대 120봉(200 한도 내), BigDecimal 보존
+- [X] T102 [P] [US3] 일봉 조회 통합 테스트를 `IT/market/TossDailyCandlesIT.java`에 작성한다(WireMock `GET /api/v1/candles?interval=1d`): 최신순 응답 정렬, 최대 120봉(200 한도 내), BigDecimal 보존
 
 ### Implementation for User Story 3
 
-- [ ] T103 [US3] Flyway `RES/db/migration/V7__guide_request.sql`을 작성한다:
+- [X] T103 [US3] Flyway `RES/db/migration/V7__guide_request.sql`을 작성한다:
   - `guide_request` 테이블:
     - id BIGINT PK
     - security_id FK NOT NULL
@@ -476,43 +476,54 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
   - `CREATE UNIQUE INDEX ux_guide_slot ON guide_request (security_id, usage_date, slot) WHERE status <> 'FAILED'`
   - `CREATE INDEX ix_guide_history ON guide_request (security_id, requested_at DESC) WHERE status = 'SUCCEEDED'`
   - 종료 상태(`SUCCEEDED`/`FAILED`) 행의 UPDATE를 거부하는 트리거 함수
-- [ ] T104 [P] [US3] 가이드 도메인을 `MAIN/guide/domain/`에 구현한다(T092·T093 통과):
+- [X] T104 [P] [US3] 가이드 도메인을 `MAIN/guide/domain/`에 구현한다(T092·T093 통과):
   - `GuideRequest`(상태 전이), `GuideStatus`, `FailureKind`, `GuideQuota`
   - `GuideContent` record: summary, diagnosis, action enum `HOLD|BUY_MORE|PARTIAL_SELL|SELL|WATCH`, rationale, risks(1~5개). contracts/ai-guide-output.schema.json과 일치시킨다
-- [ ] T105 [P] [US3] `GuidePrompt`와 `GuidePromptBuilder`를 `MAIN/guide/domain/`에 구현하고(T094 통과), 시스템 프롬프트 템플릿을 `RES/prompts/guide-system.st`에 둔다. 템플릿은 한국어 응답, JSON 스키마 준수, 투자 자문이 아님을 명시하고 출력 길이에 상한을 둔다
-- [ ] T106 [US3] `MarketDataProvider.fetchDailyCandles`를 `MAIN/market/adapter/toss/TossMarketDataProvider.java`에 구현한다. `GET /api/v1/candles?interval=1d&count=…`, 최대 120봉이다(T102 통과)
-- [ ] T107 [US3] `AnthropicGuideProvider`와 `OpenAiGuideProvider`에 `generateGuide`를 구현한다(`MAIN/guide/adapter/ai/`):
+- [X] T105 [P] [US3] `GuidePrompt`와 `GuidePromptBuilder`를 `MAIN/guide/domain/`에 구현하고(T094 통과), 시스템 프롬프트 템플릿을 `RES/prompts/guide-system.st`에 둔다. 템플릿은 한국어 응답, JSON 스키마 준수, 투자 자문이 아님을 명시하고 출력 길이에 상한을 둔다
+- [X] T106 [US3] `MarketDataProvider.fetchDailyCandles`를 `MAIN/market/adapter/toss/TossMarketDataProvider.java`에 구현한다. `GET /api/v1/candles?interval=1d&count=…`, 최대 120봉이다(T102 통과)
+- [X] T107 [US3] `AnthropicGuideProvider`와 `OpenAiGuideProvider`에 `generateGuide`를 구현한다(`MAIN/guide/adapter/ai/`):
   - Spring AI `ChatClient` + `BeanOutputConverter<GuideContent>`
   - 파싱 실패 시 rawText 폴백
   - HTTP 오류를 `CredentialError`/`TransientError`로 분류
   - T097을 통과시킨다
-- [ ] T108 [US3] `GuideRequestRepository`를 `MAIN/guide/persistence/GuideRequestRepository.java`에 구현한다:
+- [X] T108 [US3] `GuideRequestRepository`를 `MAIN/guide/persistence/GuideRequestRepository.java`에 구현한다:
   - `JdbcClient`로 slot 1 INSERT, 유니크 위반(`DuplicateKeyException`)이면 slot 2 INSERT, 또 위반이면 `QuotaExceeded`를 반환한다
   - `markSucceeded`·`markFailed`는 `WHERE status='PENDING'` 조건부로 UPDATE한다
   - `countActive(securityId, date)`, `findPending(securityId, date)`를 둔다
   - T095·T096을 통과시킨다
-- [ ] T109 [US3] `GuideService.request(holdingId)`를 `MAIN/guide/application/GuideService.java`에 구현한다:
+- [X] T109 [US3] `GuideService.request(holdingId)`를 `MAIN/guide/application/GuideService.java`에 구현한다:
   - 사전 조건 확인: 키 존재, 선택 공급자, 종목 `ACTIVE`, 시세 존재
   - 같은 종목의 PENDING이 있으면 그 요청을 반환한다
   - 스냅샷과 함께 슬롯을 예약하고, `GuideRunner`에 제출한다
-- [ ] T110 [US3] `GuideRunner`를 `MAIN/guide/application/GuideRunner.java`에 구현한다:
+- [X] T110 [US3] `GuideRunner`를 `MAIN/guide/application/GuideRunner.java`에 구현한다:
   - `guideExecutor` 가상 스레드에서 실행
   - 일봉 조회 → 프롬프트 생성 → 키 복호화 → `generateGuide`
   - 결과에 따라 `markSucceeded`(content/raw_text, model) 또는 `markFailed`(failure_kind)
   - 예외는 로깅 후 FAILED로 처리하고 삼키지 않는다
   - 실행 직전 종목이 `ACTIVE`가 아니면 AI를 호출하지 않고 `FAILED`/`INVALID_STATE`
   - 요청~완료 소요 시간을 Micrometer 타이머 `guide.generation.duration`(태그 provider, outcome)으로 기록한다(SC-005 측정)
-- [ ] T111 [US3] `StaleGuideSweeper`(`@Scheduled` 1분마다, `requested_at < now − 3m`인 PENDING을 FAILED/`TRANSIENT_ERROR`로)를 `MAIN/guide/application/StaleGuideSweeper.java`에 구현한다(T099 통과)
-- [ ] T112 [US3] `GuideController`(`POST /holdings/{id}/guides`, `GET /guides/{id}/status`, `GET /guides/{id}`)를 `MAIN/guide/web/GuideController.java`에 구현한다. 템플릿은 `RES/templates/guide/`에 둔다:
+- [X] T111 [US3] `StaleGuideSweeper`(`@Scheduled` 1분마다, `requested_at < now − 3m`인 PENDING을 FAILED/`TRANSIENT_ERROR`로)를 `MAIN/guide/application/StaleGuideSweeper.java`에 구현한다(T099 통과)
+- [X] T112 [US3] `GuideController`(`POST /holdings/{id}/guides`, `GET /guides/{id}/status`, `GET /guides/{id}`)를 `MAIN/guide/web/GuideController.java`에 구현한다. 템플릿은 `RES/templates/guide/`에 둔다:
   - `progress.html`, `result.html`(면책 문구 `guide.disclaimer` 고정 표시, 공급자·모델 표시, rawText 폴백 표시), `failure.html`, `quota-exhausted.html`
   - T098·T100를 통과시킨다
-- [ ] T113 [US3] `holding-row.html`에 가이드 버튼을 추가한다:
+- [X] T113 [US3] `holding-row.html`에 가이드 버튼을 추가한다:
   - "가이드 (남은 N회)" 표시
   - 한도 소진·거래정지 시 `disabled`와 사유 표시
   - `hx-post`와 `hx-indicator`
   - `guide-quota-changed` 이벤트로 남은 횟수를 다시 렌더링
   - 남은 횟수는 `DashboardJdbcQuery`에 오늘 KST 기준 집계를 LEFT JOIN해 단일 쿼리를 유지한다(T045 재통과)
   - T101를 통과시킨다
+
+**구현 메모 (2026-11-05)**: 계획과 달라진 점
+- T108 슬롯 예약은 `DuplicateKeyException`을 잡는 대신 `INSERT … ON CONFLICT (security_id, usage_date, slot) WHERE status <> 'FAILED' DO NOTHING RETURNING id`를 쓴다. 유니크 위반 예외는 PostgreSQL 트랜잭션을 깨뜨리기 때문이다. 구현은 포트 `GuideStore` + `JdbcGuideStore`다.
+- T103 종료 상태 불변 트리거는 `holding_id`만 바뀌는 경우를 허용한다. 보유 종목은 물리 삭제되어 FK `ON DELETE SET NULL`이 종료된 행을 UPDATE하기 때문이다(FR-027 기록 유지). 상태·실패 사유·결과 정합성 CHECK 제약을 추가했다.
+- T104 `GuideOutcome`은 `guide.domain`에 두었다(`application.port`에는 인터페이스만 둔다는 ArchUnit 규칙).
+- T107 `ChatClient` 대신 `ChatModel` + `BeanOutputConverter`를 쓴다(`spring-ai-client-chat` 의존성 불필요). 잔액 부족은 Anthropic 400 "credit balance", OpenAI 429 `insufficient_quota`로 판별한다.
+- T105 시스템 프롬프트의 `{format}`은 StringTemplate 대신 문자열 치환으로 채운다(스키마 JSON의 중괄호 때문).
+- T096 동시성은 DB 보장을 직접 검증하도록 `GuideStore.reserve`에 20건 × 100회로 확인한다.
+- T109 시세가 없으면 409(`NO_QUOTE`)로 안내한다.
+- T112·T113 가이드 결과는 대시보드 상단의 `#guide-panel` 한 곳에 보인다. 버튼은 `GET /holdings/{id}/guide-button`으로 다시 그리며, 같은 종목 행만 갱신하도록 `HX-Trigger`에 `guide-quota-changed-{securityId}`도 함께 보낸다(htmx `allowEval=false`라 트리거 필터를 쓸 수 없음). FAILED 응답에도 이벤트를 보낸다.
+- US4에서 미룬 "가이드 실패 흐름 키 비노출"(`ApiKeyLeakIT`)과 quickstart S4 1단계(`GuideRequestE2E`)를 이번에 추가했다.
 
 **Checkpoint**: 가이드 요청·한도·실패 처리가 동작하고, 결과가 guide_request에 기록된다.
 

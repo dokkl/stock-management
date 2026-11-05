@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head(#{guide.title(${guide.securityName})})}"></head>
+<body>
+<a class="skip-link" href="#main">본문으로 건너뛰기</a>
+<header th:replace="~{layout :: header}"></header>
+<main id="main">
+    <h1 class="visually-hidden" th:text="#{guide.title(${guide.securityName})}">가이드</h1>
+    <th:block th:if="${guide.isSucceeded()}"><article th:replace="~{guide/result :: result}"></article></th:block>
+    <th:block th:if="${guide.isPending()}"><div th:replace="~{guide/progress :: progress}"></div></th:block>
+    <th:block th:if="${guide.isFailed()}"><div th:replace="~{guide/failure :: failure}"></div></th:block>
+</main>
+<th:block th:replace="~{layout :: chrome}"></th:block>
+</body>
+</html>

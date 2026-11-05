@@ -169,7 +169,8 @@ market_token (독립, 토스증권 토큰 캐시)
   ```
 
   `SUCCEEDED`와 `FAILED`는 종료 상태다. 종료 상태 행은 수정하지 않는다. 애플리케이션에 업데이트
-  경로를 두지 않고, DB 트리거로도 막는다.
+  경로를 두지 않고, DB 트리거로도 막는다. 단, 보유 종목 삭제 시 FK `ON DELETE SET NULL`이 `holding_id`만
+  비우는 것은 트리거가 허용한다(FR-027 기록 유지).
 - **남은 횟수**: `2 − count(status <> 'FAILED' AND security_id = ? AND usage_date = today_kst)`
 - **스냅샷 원칙**: 보유 종목이나 계좌가 나중에 바뀌어도 기록은 요청 당시 값을 보여준다(US5 시나리오 2).
 

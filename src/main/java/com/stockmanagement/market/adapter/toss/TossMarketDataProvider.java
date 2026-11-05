@@ -1,6 +1,7 @@
 package com.stockmanagement.market.adapter.toss;
 
 import com.stockmanagement.market.application.port.MarketDataProvider;
+import com.stockmanagement.market.domain.DailyCandle;
 import com.stockmanagement.market.domain.Exchange;
 import com.stockmanagement.market.domain.Market;
 import com.stockmanagement.market.domain.MarketCalendar;
@@ -163,6 +164,28 @@ class TossMarketDataProvider implements MarketDataProvider {
                 .map(c -> new BigDecimal(c.closePrice()));
     }
 
+    /** GET /api/v1/candles?interval=1d&count=… (MARKET_DATA_CHART 그룹). 응답 순서와 관계없이 최신순으로 돌려준다. */
+    @Override
+    public List<DailyCandle> fetchDailyCandles(String symbol, int days) {
+        if (days < 1 || days > MAX_DAILY_CANDLES) {
+            throw new IllegalArgumentException("일봉 수는 1~" + MAX_DAILY_CANDLES + "입니다: " + days);
+        }
+        CandlePage page = withToken(token -> httpClient.get(
+                TossRateLimiter.Group.MARKET_DATA_CHART,
+                token,
+                uri -> uri.path("/api/v1/candles")
+                        .queryParam("symbol", symbol)
+                        .queryParam("interval", "1d")
+                        .queryParam("count", days)
+                        .build(),
+                CANDLES));
+        return page.candles().stream()
+                .map(Candle::toDomain)
+                .sorted(java.util.Comparator.comparing(DailyCandle::date).reversed())
+                .limit(days)
+                .toList();
+    }
+
     /** GET /api/v1/stocks?symbols=… (STOCK 그룹). 거래정지 여부는 국내 종목(KRX)에만 제공된다. */
     @Override
     public Set<String> fetchSuspendedSymbols(List<String> symbols) {
@@ -218,9 +241,24 @@ class TossMarketDataProvider implements MarketDataProvider {
     record CandlePage(List<Candle> candles) {}
 
     /** 일봉 timestamp는 현지 자정이다. Jackson이 UTC로 바꾸면 날짜가 밀리므로 문자열로 받아 현지 날짜를 읽는다. */
-    record Candle(String timestamp, String closePrice) {
+    record Candle(
+            String timestamp, String openPrice, String highPrice, String lowPrice, String closePrice, String volume) {
         LocalDate tradingDate() {
             return OffsetDateTime.parse(timestamp).toLocalDate();
+        }
+
+        DailyCandle toDomain() {
+            return new DailyCandle(
+                    tradingDate(),
+                    decimal(openPrice),
+                    decimal(highPrice),
+                    decimal(lowPrice),
+                    decimal(closePrice),
+                    decimal(volume));
+        }
+
+        private static BigDecimal decimal(String value) {
+            return value == null ? null : new BigDecimal(value);
         }
     }
 

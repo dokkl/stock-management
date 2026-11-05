@@ -12,7 +12,7 @@
 fetchQuotes(List<symbol>) -> List<QuoteResult>
     QuoteResult = Success(symbol, price, asOf)
                 | Failure(symbol, reason: RATE_LIMITED | NOT_FOUND | UPSTREAM_ERROR)
-fetchDailyCandles(SecurityRef, days: int<=120) -> List<Candle(date, open, high, low, close, volume)>
+fetchDailyCandles(symbol, days: int<=120) -> List<DailyCandle(date, open, high, low, close, volume)>   // 최신순
 fetchSecurityMaster(Exchange) -> Stream<SecurityRecord>
 fetchMarketCalendar(Market) -> MarketCalendar(today, regularOpen, regularClose, previousBusinessDay)
 fetchPreviousClose(symbol, LocalDate referenceDate) -> Optional<BigDecimal>   // 기준일 직전 거래일 일봉 종가
@@ -26,17 +26,16 @@ fetchSuspendedSymbols(List<symbol>) -> Set<symbol>   // 거래정지 종목(국�
   거치지 않는다.
 - 호출량 제한을 지킨다. 어댑터 내부에 토스증권 Rate Limits Group별 레이트 리미터를 둔다.
 - 전일 종가는 현재가 응답에 없으므로 시세와 별도로 받는다. 장 상태와 거래일 판단은 도메인(`MarketCalendar`)이 한다.
-- `fetchDailyCandles`(가이드용 60거래일 요약)는 US3에서 추가한다.
 
 ## AiGuideProvider (R4)
 
 ```text
 provider() -> AiProvider            // ANTHROPIC | OPENAI | ...
 verifyKey(ApiKey) -> KeyCheck = VALID | INVALID | UNAVAILABLE   // US4에서 구현
-generateGuide(ApiKey, GuidePrompt) -> GuideOutcome               // US3에서 추가
+generateGuide(ApiKey, GuidePrompt) -> GuideOutcome               // US3에서 구현 (GuideOutcome은 guide.domain)
     GuideOutcome = Generated(model, GuideContent | rawText)
-                 | CredentialError(message)      // 401/403, 잔액 부족
-                 | TransientError(message)       // 타임아웃(60s), 429, 5xx
+                 | CredentialError(status)       // 401/402/403, 잔액 부족(Anthropic 400 credit balance, OpenAI 429 insufficient_quota)
+                 | TransientError(status)        // 타임아웃(60s, status 0), 429, 5xx
 ```
 
 - `GuidePrompt`는 도메인이 만든 입력이다. 들어가는 값은 다음과 같다.
