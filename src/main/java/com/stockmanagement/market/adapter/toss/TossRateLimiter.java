@@ -14,6 +14,8 @@ public final class TossRateLimiter {
     public enum Group {
         AUTH(4),
         STOCK_ALL(1),
+        /** 공시 한도를 확인하지 못해 MARKET_INFO와 같은 수준으로 보수적으로 잡는다. */
+        STOCK(2),
         MARKET_INFO(2),
         MARKET_DATA(12),
         MARKET_DATA_CHART(15);

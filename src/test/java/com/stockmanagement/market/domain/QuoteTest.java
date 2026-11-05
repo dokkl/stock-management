@@ -69,9 +69,12 @@ class QuoteTest {
     @Test
     void closedAndHolidayAreNeverStale() {
         Instant later = FETCHED.plus(Duration.ofHours(10));
-        assertThat(quote("1", "1", MarketState.CLOSED).status(later, STALE_AFTER)).isEqualTo(QuoteStatus.CLOSED);
-        assertThat(quote("1", "1", MarketState.HOLIDAY).status(later, STALE_AFTER)).isEqualTo(QuoteStatus.CLOSED);
-        assertThat(quote("1", "1", MarketState.PRE_OPEN).status(later, STALE_AFTER)).isEqualTo(QuoteStatus.PRE_OPEN);
+        assertThat(quote("1", "1", MarketState.CLOSED).status(later, STALE_AFTER))
+                .isEqualTo(QuoteStatus.CLOSED);
+        assertThat(quote("1", "1", MarketState.HOLIDAY).status(later, STALE_AFTER))
+                .isEqualTo(QuoteStatus.CLOSED);
+        assertThat(quote("1", "1", MarketState.PRE_OPEN).status(later, STALE_AFTER))
+                .isEqualTo(QuoteStatus.PRE_OPEN);
     }
 
     @Test
@@ -83,7 +86,8 @@ class QuoteTest {
 
     @Test
     void requiresValues() {
-        assertThatThrownBy(() -> new Quote(1L, null, BigDecimal.ONE, LocalDate.now(), MarketState.OPEN, FETCHED, FETCHED))
+        assertThatThrownBy(() -> new Quote(
+                        1L, null, BigDecimal.ONE, LocalDate.of(2026, 11, 5), MarketState.OPEN, FETCHED, FETCHED))
                 .isInstanceOf(NullPointerException.class);
     }
 }

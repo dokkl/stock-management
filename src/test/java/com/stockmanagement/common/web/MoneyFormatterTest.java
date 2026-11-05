@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.stockmanagement.common.domain.Currency;
 import java.math.BigDecimal;
+import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
 class MoneyFormatterTest {
@@ -52,5 +53,22 @@ class MoneyFormatterTest {
     void formatsQuantity() {
         assertThat(formatter.quantity(new BigDecimal("10.000000"))).isEqualTo("10주");
         assertThat(formatter.quantity(new BigDecimal("0.350000"))).isEqualTo("0.35주");
+    }
+
+    @Test
+    void formatsPnlWithArrowAbsoluteAmountAndSignedRate() {
+        assertThat(formatter.pnl(new BigDecimal("-5000"), new BigDecimal("-0.0070"), Currency.KRW))
+                .isEqualTo("▼ ₩5,000 (−0.70%)");
+        assertThat(formatter.pnl(new BigDecimal("1.68"), new BigDecimal("0.0259"), Currency.USD))
+                .isEqualTo("▲ $1.68 (+2.59%)");
+        assertThat(formatter.pnl(BigDecimal.ZERO, BigDecimal.ZERO, Currency.KRW))
+                .isEqualTo("– ₩0 (0.00%)");
+    }
+
+    @Test
+    void formatsTimesInKst() {
+        Instant instant = Instant.parse("2026-11-05T05:32:05Z");
+        assertThat(formatter.time(instant)).isEqualTo("14:32:05");
+        assertThat(formatter.shortTime(instant)).isEqualTo("14:32");
     }
 }

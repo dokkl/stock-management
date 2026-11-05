@@ -9,13 +9,14 @@
 ## MarketDataProvider (R2, R3)
 
 ```text
-fetchQuotes(List<SecurityRef>) -> List<QuoteResult>
-    QuoteResult = Success(securityRef, price, prevClose, marketState, asOf)
-                | Failure(securityRef, reason: RATE_LIMITED | NOT_FOUND | UPSTREAM_ERROR)
+fetchQuotes(List<symbol>) -> List<QuoteResult>
+    QuoteResult = Success(symbol, price, asOf)
+                | Failure(symbol, reason: RATE_LIMITED | NOT_FOUND | UPSTREAM_ERROR)
 fetchDailyCandles(SecurityRef, days: int<=120) -> List<Candle(date, open, high, low, close, volume)>
 fetchSecurityMaster(Exchange) -> Stream<SecurityRecord>
-fetchMarketCalendar(Market) -> MarketCalendarDay(today, previousBusinessDay, nextBusinessDay)
-fetchPreviousClose(SecurityRef, LocalDate previousBusinessDay) -> BigDecimal   // 일봉 종가
+fetchMarketCalendar(Market) -> MarketCalendar(today, regularOpen, regularClose, previousBusinessDay)
+fetchPreviousClose(symbol, LocalDate referenceDate) -> Optional<BigDecimal>   // 기준일 직전 거래일 일봉 종가
+fetchSuspendedSymbols(List<symbol>) -> Set<symbol>   // 거래정지 종목(국내만 제공)
 ```
 
 **계약 조건**:
@@ -24,7 +25,8 @@ fetchPreviousClose(SecurityRef, LocalDate previousBusinessDay) -> BigDecimal   /
 - 금액은 `BigDecimal`이며 종목 통화 기준이다. 제공자의 문자열 응답을 그대로 파싱하고, 부동소수점을
   거치지 않는다.
 - 호출량 제한을 지킨다. 어댑터 내부에 토스증권 Rate Limits Group별 레이트 리미터를 둔다.
-- 현재(US1)는 `fetchSecurityMaster`만 구현되어 있다. 나머지는 US2·US3에서 추가한다.
+- 전일 종가는 현재가 응답에 없으므로 시세와 별도로 받는다. 장 상태와 거래일 판단은 도메인(`MarketCalendar`)이 한다.
+- `fetchDailyCandles`(가이드용 60거래일 요약)는 US3에서 추가한다.
 
 ## AiGuideProvider (R4)
 
