@@ -131,7 +131,8 @@ class GuideRoutesIT extends IntegrationTestBase {
         pollStatus(id)
                 .andExpect(content()
                         .string(allOf(
-                                containsString("종합 판단"),
+                                containsString("class=\"guide-headline\""),
+                                containsString("자세히 보기"),
                                 containsString("수출 규제 이슈가 부담입니다"),
                                 containsString("외국인이 5일 연속 순매수했습니다."),
                                 containsString("웹 검색을 지원하지 않아"),
@@ -265,6 +266,29 @@ class GuideRoutesIT extends IntegrationTestBase {
         assertThat(activeCount()).isZero();
         mockMvc.perform(get("/holdings/" + g.holding + "/guide-button").with(owner()))
                 .andExpect(content().string(containsString("가이드 (남은 2회)")));
+    }
+
+    @Test
+    void truncatedResponseFailsWithRetryMessageAndKeepsQuota() throws Exception {
+        WIREMOCK.resetAll();
+        GuideFixture.stubMarket(WIREMOCK);
+        ai.openAiTruncated(AiStubs.GUIDE_JSON.substring(0, 120));
+
+        requestGuide(g.holding).andExpect(status().isAccepted());
+        long id = g.latestGuideId();
+        assertThat(g.awaitTerminal(id, WAIT)).isEqualTo("FAILED");
+
+        pollStatus(id)
+                .andExpect(content()
+                        .string(allOf(
+                                containsString("너무 길어 중간에 끊겼습니다"),
+                                containsString("차감되지 않았습니다"),
+                                not(containsString("summary")))));
+        assertThat(jdbc.sql("SELECT failure_kind FROM guide_request")
+                        .query(String.class)
+                        .single())
+                .isEqualTo("OUTPUT_TRUNCATED");
+        assertThat(activeCount()).isZero();
     }
 
     @Test

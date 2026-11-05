@@ -126,6 +126,20 @@ public final class AiStubs {
                                 + "\"server_tool_use\":{\"web_search_requests\":1}}}")));
     }
 
+    /** OpenAI가 출력 한도(finish_reason=length)에서 잘린 본문을 응답한다. */
+    public void openAiTruncated(String partialText) {
+        server.stubFor(
+                post(urlPathEqualTo(OPENAI_PATH))
+                        .willReturn(
+                                json(
+                                        200,
+                                        "{\"id\":\"chatcmpl-1\",\"object\":\"chat.completion\",\"created\":1,"
+                                                + "\"model\":\"gpt-5\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\","
+                                                + "\"content\":" + quote(partialText)
+                                                + "},\"finish_reason\":\"length\"}],"
+                                                + "\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":16000,\"total_tokens\":16010}}")));
+    }
+
     public static String quote(String text) {
         return "\"" + text.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n") + "\"";
     }

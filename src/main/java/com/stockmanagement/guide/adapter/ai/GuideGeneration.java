@@ -36,7 +36,14 @@ import org.springframework.stereotype.Component;
 class GuideGeneration {
 
     private static final Logger log = LoggerFactory.getLogger(GuideGeneration.class);
-    static final int MAX_OUTPUT_TOKENS = 4096;
+    /**
+     * 출력 토큰 상한. 한국어 장문 + 웹 검색 이슈로 4096에서 잘린 사례가 있었고, OpenAI 추론 모델은 추론 토큰도 여기에
+     * 포함된다. 길이는 프롬프트의 항목별 글자 수로 줄이고, 이 값은 잘리지 않게 넉넉히 둔다.
+     */
+    static final int MAX_OUTPUT_TOKENS = 16_000;
+
+    /** 출력 한도로 끝났음을 뜻하는 finish reason(Anthropic max_tokens, OpenAI length). */
+    private static final Set<String> TRUNCATED_REASONS = Set.of("max_tokens", "length");
 
     private final String systemTemplate;
 
@@ -50,8 +57,8 @@ class GuideGeneration {
     }
 
     static final String ISSUE_RULE_SEARCH = """
-            - issues: 웹 검색으로 이 종목과 관련된 최근 국내외 이슈(정치·지정학·정책·산업·기업)를 찾아 최대 5개를 적습니다.
-              각 항목의 sourceUrl에는 실제로 검색해서 확인한 기사·자료의 URL을 그대로 적습니다. 검색 결과에 없는 URL은 쓰지 않습니다.
+            - issues: 웹 검색으로 이 종목과 관련된 최근 국내외 이슈(정치·지정학·정책·산업·기업) 중 영향이 큰 것을 최대 3개 적습니다.
+              각 항목의 sourceUrl에는 실제로 검색해서 확인한 기사·자료의 URL을 그대로 적습니다. 검색 결과에 없는 URL은 쓰지 않습니다. 이슈 요약은 항목마다 100자 이내 한 문장입니다.
               impact는 종목에 대한 영향 방향(POSITIVE, NEGATIVE, NEUTRAL)입니다. 확인된 이슈가 없으면 빈 배열로 둡니다.""";
     static final String ISSUE_RULE_NONE = """
             - issues: 이번 요청에는 웹 검색을 쓸 수 없으므로 반드시 빈 배열([])로 둡니다. 기억에 의존해 이슈를 적지 않습니다.""";
@@ -90,16 +97,46 @@ class GuideGeneration {
             log.warn("AI 가이드 응답이 비어 있음: provider={}", provider);
             return new GuideOutcome.TransientError(0);
         }
-        String modelName =
-                response.getMetadata() == null || isBlank(response.getMetadata().getModel())
-                        ? configuredModel
-                        : response.getMetadata().getModel();
+        return interpret(provider, modelName(response, configuredModel), text, converter, searchedUrls, response);
+    }
+
+    /** 응답 본문 해석: 구조화 성공이면 이슈 출처 검증, 실패인데 출력 한도로 끝났으면 잘림, 아니면 원문. */
+    private static GuideOutcome interpret(
+            AiProvider provider,
+            String modelName,
+            String text,
+            BeanOutputConverter<GuideContent> converter,
+            Function<ChatResponse, Set<String>> searchedUrls,
+            ChatResponse response) {
         GuideOutcome outcome = parse(provider, modelName, text, converter);
-        if (outcome instanceof GuideOutcome.Generated g && g.content() != null) {
+        if (!(outcome instanceof GuideOutcome.Generated g)) {
+            return outcome;
+        }
+        if (g.content() != null) {
             return new GuideOutcome.Generated(
                     modelName, verifyIssues(provider, g.content(), searchedUrls, response), null);
         }
+        if (isTruncated(response)) {
+            log.warn("AI 가이드 응답이 출력 한도에서 잘림: provider={}, length={}", provider, text.length());
+            return new GuideOutcome.Truncated();
+        }
         return outcome;
+    }
+
+    private static String modelName(ChatResponse response, String configuredModel) {
+        return response.getMetadata() == null || isBlank(response.getMetadata().getModel())
+                ? configuredModel
+                : response.getMetadata().getModel();
+    }
+
+    /** 마지막 생성 결과의 finish reason이 출력 한도 도달이면 잘린 응답이다. */
+    static boolean isTruncated(ChatResponse response) {
+        List<Generation> results = response.getResults();
+        if (results.isEmpty() || results.getLast().getMetadata() == null) {
+            return false;
+        }
+        String reason = results.getLast().getMetadata().getFinishReason();
+        return reason != null && TRUNCATED_REASONS.contains(reason.strip().toLowerCase(Locale.ROOT));
     }
 
     /** 웹 검색을 쓰면 응답이 여러 텍스트 블록(검색 전 설명, 인용 문단, JSON)으로 나뉘므로 모두 이어 붙인다. */

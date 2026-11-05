@@ -144,13 +144,14 @@ class GuideRequestE2E extends E2ETestBase {
 
         guideButton().click();
 
-        assertThat(panel())
-                .containsText(
-                        "종합 판단",
-                        new com.microsoft.playwright.assertions.LocatorAssertions.ContainsTextOptions()
-                                .setTimeout(15_000));
-        assertThat(panel()).containsText("수급은 좋지만 규제 이슈로 관망합니다.");
-        assertThat(panel()).containsText("외국인이 순매수 중입니다.");
+        // 결론만 먼저 보이고, 나머지는 "자세히 보기"를 눌러야 펼쳐진다
+        assertThat(panel().locator(".guide-headline"))
+                .hasText(
+                        "수급은 좋지만 규제 이슈로 관망합니다.",
+                        new com.microsoft.playwright.assertions.LocatorAssertions.HasTextOptions().setTimeout(15_000));
+        assertThat(panel().getByText("외국인이 순매수 중입니다.")).isHidden();
+        panel().getByText("자세히 보기").click();
+        assertThat(panel().getByText("외국인이 순매수 중입니다.")).isVisible();
         assertThat(panel()).containsText("악재");
         Locator source = panel().getByRole(AriaRole.LINK, new Locator.GetByRoleOptions().setName("예시 뉴스"));
         assertThat(source).hasAttribute("href", "https://news.example.com/chip");

@@ -24,4 +24,7 @@ public sealed interface GuideOutcome {
 
     /** 시간 초과·429·5xx 등 일시 장애. status는 HTTP 응답이 없으면 0이다. */
     record TransientError(int status) implements GuideOutcome {}
+
+    /** 응답이 출력 토큰 한도에서 잘려 구조화 결과를 읽을 수 없다. */
+    record Truncated() implements GuideOutcome {}
 }

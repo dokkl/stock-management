@@ -167,6 +167,7 @@ public class GuideRunner {
             }
             case GuideOutcome.CredentialError e -> fail(job, FailureKind.CREDENTIAL_ERROR);
             case GuideOutcome.TransientError e -> fail(job, FailureKind.TRANSIENT_ERROR);
+            case GuideOutcome.Truncated t -> fail(job, FailureKind.OUTPUT_TRUNCATED);
         };
     }
 

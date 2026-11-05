@@ -552,6 +552,8 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
 - [X] T113j Claude 웹 검색(`AnthropicChatOptions.webSearchTool`, 최대 5회)과 출처 검증, 여러 텍스트 블록 결합·JSON 추출, 가이드 타임아웃 `app.ai.guide-timeout`(기본 120초) 분리, 시스템 프롬프트 갱신
 - [X] T113l 가이드 버튼을 외곽선 버튼(`.btn.btn-sm.btn-guide`, 아이콘·호버·비활성 상태)으로 바꿔 텍스트 링크와 구분한다
 - [X] T113m 분석 진행 카드: 단계 목록(데이터 수집 → 수급 → 이슈 검색(Claude) → 종합 판단 → 리포트), 차트 스캔 애니메이션, 진행 막대, 경과 시간. 진행 중 폴링은 204로 카드를 유지하고, 단계는 경과 시간 기준(app.js)이며 `prefers-reduced-motion`을 존중한다
+- [X] T113n 응답 잘림 대응: 출력 한도 16000 토큰, 프롬프트 글자 수 축소, finish reason `max_tokens`/`length`로 잘림 감지 시 `OUTPUT_TRUNCATED` 실패(V8 CHECK 확장, 횟수 반환, 재요청 안내). `AiGenerateGuideIT`·`GuideRoutesIT`에 재현 테스트
+- [X] T113o 간결화: 프롬프트 항목별 1~3문장·전체 1500자, 결과 화면은 행동 가이드와 종합 판단만 먼저 보이고 나머지는 "자세히 보기"로 접는다
 - [X] T113k 결과 화면: 종합 판단·수급·국내외 이슈(호재/악재/중립, 출처 새 창 링크), OpenAI 미지원 안내, 이전 형식 기록 호환
 
 **Checkpoint**: 가이드가 기술·수급·이슈를 종합해 판단하고, 이슈는 검증된 출처와 함께 보인다.

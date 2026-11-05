@@ -141,6 +141,37 @@ class AiGenerateGuideIT extends IntegrationTestBase {
     }
 
     @Test
+    void claudeResponseCutAtMaxTokensIsTruncated() {
+        String partial = GUIDE_JSON.substring(0, GUIDE_JSON.indexOf("\"rationale\"") + 20);
+        WIREMOCK.stubFor(post(urlPathEqualTo(AiStubs.ANTHROPIC_PATH))
+                .willReturn(json(
+                        200,
+                        "{\"id\":\"msg_1\",\"type\":\"message\",\"role\":\"assistant\","
+                                + "\"model\":\"claude-sonnet-5-5\",\"content\":[{\"type\":\"text\",\"text\":"
+                                + quote(partial)
+                                + "}],\"stop_reason\":\"max_tokens\",\"stop_sequence\":null,"
+                                + "\"usage\":{\"input_tokens\":10,\"output_tokens\":16000}}")));
+
+        assertThat(anthropic()).isEqualTo(new GuideOutcome.Truncated());
+        WIREMOCK.verify(postRequestedFor(urlPathEqualTo(AiStubs.ANTHROPIC_PATH))
+                .withRequestBody(containing("\"max_tokens\":16000")));
+    }
+
+    @Test
+    void openAiResponseCutAtLengthIsTruncated() {
+        new AiStubs(WIREMOCK).openAiTruncated(GUIDE_JSON.substring(0, 80));
+
+        assertThat(openAi()).isEqualTo(new GuideOutcome.Truncated());
+    }
+
+    @Test
+    void plainTextEndingNormallyStaysRawText() {
+        stubAnthropicText("지금은 관망이 좋겠습니다.", "claude-sonnet-5-5");
+
+        assertThat(anthropic()).isInstanceOf(GuideOutcome.Generated.class);
+    }
+
+    @Test
     void schemaMismatchFallsBackToRawText() {
         stubAnthropicText("분석: 지금은 관망이 좋겠습니다.", "claude-sonnet-5-5");
 

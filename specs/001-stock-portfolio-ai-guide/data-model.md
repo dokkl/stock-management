@@ -142,7 +142,7 @@ market_token (독립, 토스증권 토큰 캐시)
 | usage_date | DATE | NOT NULL | 요청 시작 시각의 KST 날짜 |
 | slot | SMALLINT | NOT NULL, 1 \| 2 | 하루 슬롯 |
 | status | VARCHAR(10) | NOT NULL | `PENDING` \| `SUCCEEDED` \| `FAILED` |
-| failure_kind | VARCHAR(20) | NULL | `CREDENTIAL_ERROR` \| `TRANSIENT_ERROR` \| `INVALID_STATE` |
+| failure_kind | VARCHAR(20) | NULL | `CREDENTIAL_ERROR` \| `TRANSIENT_ERROR` \| `INVALID_STATE` \| `OUTPUT_TRUNCATED`(V8, 응답이 출력 한도에서 잘림) |
 | provider | VARCHAR(20) | NOT NULL | 요청 시 사용한 공급자 |
 | model | VARCHAR(80) | NULL | 응답한 모델명 (FR-022) |
 | account_name_snapshot | VARCHAR(30) | NOT NULL | 요청 당시 계좌명 |
