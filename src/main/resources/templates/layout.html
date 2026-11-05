@@ -19,6 +19,7 @@
     <a class="brand" th:href="@{/}" th:text="#{app.name}">Stock Management</a>
     <nav class="site-nav" sec:authorize="isAuthenticated()" th:aria-label="#{nav.main}">
         <a th:href="@{/}" th:text="#{nav.dashboard}">대시보드</a>
+        <a th:href="@{/settings/ai}" th:text="#{nav.aiSettings}">AI 설정</a>
         <form th:action="@{/logout}" method="post">
             <button type="submit" class="btn btn-link" th:text="#{nav.logout}">로그아웃</button>
         </form>

@@ -32,8 +32,8 @@ fetchSuspendedSymbols(List<symbol>) -> Set<symbol>   // 거래정지 종목(국�
 
 ```text
 provider() -> AiProvider            // ANTHROPIC | OPENAI | ...
-verifyKey(ApiKey) -> KeyCheck = VALID | INVALID | UNAVAILABLE
-generateGuide(ApiKey, GuidePrompt) -> GuideOutcome
+verifyKey(ApiKey) -> KeyCheck = VALID | INVALID | UNAVAILABLE   // US4에서 구현
+generateGuide(ApiKey, GuidePrompt) -> GuideOutcome               // US3에서 추가
     GuideOutcome = Generated(model, GuideContent | rawText)
                  | CredentialError(message)      // 401/403, 잔액 부족
                  | TransientError(message)       // 타임아웃(60s), 429, 5xx
@@ -52,7 +52,7 @@ generateGuide(ApiKey, GuidePrompt) -> GuideOutcome
 ## CredentialCipher (R5)
 
 ```text
-encrypt(ApiKey) -> EncryptedSecret(ciphertext, iv, keyVersion, last4)
+encrypt(ApiKey) -> EncryptedApiKey(EncryptedSecret(ciphertext, iv, keyVersion), last4)
 decrypt(EncryptedSecret) -> ApiKey
 ```
 

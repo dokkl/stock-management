@@ -358,10 +358,10 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T078 [P] [US4] `CredentialCipher` 단위 테스트를 `UT/aicredential/application/CredentialCipherTest.java`에 작성한다: `ApiKey` 암호화 결과의 last4 정확성, 왕복 복호화, `EncryptedSecret`에 평문 없음(공통 `AesGcmSecretCipher`는 T021에서 검증됨)
-- [ ] T079 [P] [US4] `ApiKey` 값 객체 단위 테스트를 `UT/aicredential/domain/ApiKeyTest.java`에 작성한다: `toString()`은 `****1234`, 빈 값과 공백은 거부, `equals`가 원문을 노출하지 않음
-- [ ] T080 [P] [US4] 공급자 어댑터 키 검증 통합 테스트를 `IT/guide/AiProviderVerifyKeyIT.java`에 작성한다(WireMock으로 Anthropic·OpenAI 엔드포인트 대역): 200은 VALID, 401은 INVALID, 타임아웃·503은 UNAVAILABLE
-- [ ] T081 [P] [US4] AI 설정 라우트 계약 테스트를 `IT/aicredential/AiSettingsRoutesIT.java`에 작성한다:
+- [X] T078 [P] [US4] `CredentialCipher` 단위 테스트를 `UT/aicredential/application/CredentialCipherTest.java`에 작성한다: `ApiKey` 암호화 결과의 last4 정확성, 왕복 복호화, `EncryptedSecret`에 평문 없음(공통 `AesGcmSecretCipher`는 T021에서 검증됨)
+- [X] T079 [P] [US4] `ApiKey` 값 객체 단위 테스트를 `UT/aicredential/domain/ApiKeyTest.java`에 작성한다: `toString()`은 `****1234`, 빈 값과 공백은 거부, `equals`가 원문을 노출하지 않음
+- [X] T080 [P] [US4] 공급자 어댑터 키 검증 통합 테스트를 `IT/guide/AiProviderVerifyKeyIT.java`에 작성한다(WireMock으로 Anthropic·OpenAI 엔드포인트 대역): 200은 VALID, 401은 INVALID, 타임아웃·503은 UNAVAILABLE
+- [X] T081 [P] [US4] AI 설정 라우트 계약 테스트를 `IT/aicredential/AiSettingsRoutesIT.java`에 작성한다:
   - `PUT /settings/ai/credentials/{provider}`: 200 / 422 "키를 확인할 수 없습니다"(입력란 비움) / 503
   - 같은 공급자로 재등록하면 교체
   - 첫 키 등록 시 자동 선택
@@ -369,33 +369,41 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
   - `DELETE`는 확인 후 삭제하고 선택을 다른 키로 바꾸거나 NULL로 둠
   - DB `ai_credential`에 평문이 없음(바이트 검색)
   - 미인증 401, CSRF 없음 403
-- [ ] T082 [P] [US4] 키 비노출 테스트를 `IT/aicredential/ApiKeyLeakIT.java`에 작성한다(SC-009). 등록·검증 실패·가이드 실패 흐름 동안 로그(`OutputCaptureExtension`), 응답 본문, 리다이렉트 URL, DB 모든 텍스트 컬럼에서 키 원문 검색 결과가 0건이어야 한다
-- [ ] T083 [P] [US4] E2E 시나리오를 `E2E/aicredential/AiSettingsE2E.java`에 작성한다. quickstart S4 1~4단계(WireMock AI 대역)와 axe 위반 0건을 검증한다
+- [X] T082 [P] [US4] 키 비노출 테스트를 `IT/aicredential/ApiKeyLeakIT.java`에 작성한다(SC-009). 등록·검증 실패·가이드 실패 흐름 동안 로그(`OutputCaptureExtension`), 응답 본문, 리다이렉트 URL, DB 모든 텍스트 컬럼에서 키 원문 검색 결과가 0건이어야 한다
+- [X] T083 [P] [US4] E2E 시나리오를 `E2E/aicredential/AiSettingsE2E.java`에 작성한다. quickstart S4 1~4단계(WireMock AI 대역)와 axe 위반 0건을 검증한다
 
 ### Implementation for User Story 4
 
-- [ ] T084 [US4] Flyway `RES/db/migration/V6__ai_credential.sql`을 작성한다:
+- [X] T084 [US4] Flyway `RES/db/migration/V6__ai_credential.sql`을 작성한다:
   - `ai_credential` 테이블: id BIGINT PK, provider VARCHAR(20) NOT NULL UNIQUE `CHECK (provider IN ('ANTHROPIC','OPENAI'))`, ciphertext BYTEA NOT NULL, iv BYTEA NOT NULL `CHECK (octet_length(iv) = 12)`, key_version SMALLINT NOT NULL, last4 CHAR(4) NOT NULL, verified_at TIMESTAMPTZ NOT NULL, created_at/updated_at
-- [ ] T085 [P] [US4] 도메인과 포트를 만든다:
+- [X] T085 [P] [US4] 도메인과 포트를 만든다:
   - `AiProvider` enum(ANTHROPIC, OPENAI, 표시명 포함), `ApiKey`, `EncryptedSecret`, `KeyCheck`: `MAIN/aicredential/domain/`
   - T079을 통과시킨다
-- [ ] T086 [P] [US4] `CredentialCipher`를 `MAIN/aicredential/application/CredentialCipher.java`에 구현한다. 공통 `SecretCipher`(T038)를 감싸 `ApiKey` ↔ `EncryptedSecret`·last4를 변환한다(T078 통과)
-- [ ] T087 [US4] `AiGuideProvider` 포트를 `MAIN/guide/application/port/AiGuideProvider.java`에 정의한다. `provider()`, `verifyKey(ApiKey)`, `generateGuide(ApiKey, GuidePrompt)`를 두고 `GuideOutcome` sealed 타입을 쓴다(contracts/ports.md)
-- [ ] T088 [US4] `AiGuideClientFactory`와 두 어댑터를 `MAIN/guide/adapter/ai/`에 구현한다:
+- [X] T086 [P] [US4] `CredentialCipher`를 `MAIN/aicredential/application/CredentialCipher.java`에 구현한다. 공통 `SecretCipher`(T038)를 감싸 `ApiKey` ↔ `EncryptedSecret`·last4를 변환한다(T078 통과)
+- [X] T087 [US4] `AiGuideProvider` 포트를 `MAIN/guide/application/port/AiGuideProvider.java`에 정의한다. `provider()`, `verifyKey(ApiKey)`, `generateGuide(ApiKey, GuidePrompt)`를 두고 `GuideOutcome` sealed 타입을 쓴다(contracts/ports.md)
+- [X] T088 [US4] `AiGuideClientFactory`와 두 어댑터를 `MAIN/guide/adapter/ai/`에 구현한다:
   - `AiGuideClientFactory`: 요청마다 사용자 키로 `AnthropicChatModel`/`OpenAiChatModel`을 생성하고, 모델명은 `app.ai.models.*`, 타임아웃은 `app.ai.timeout`(60s)
   - `AnthropicGuideProvider`, `OpenAiGuideProvider`
   - 이 단계에서는 `verifyKey`만 구현한다(최소 토큰 요청). 401/403은 INVALID, 타임아웃/5xx는 UNAVAILABLE이다(T080 통과)
   - Spring AI 모델 자동 구성은 `spring.autoconfigure.exclude`로 끈다
-- [ ] T089 [US4] `AiCredentialEntity`·`AiCredentialRepository`를 `MAIN/aicredential/persistence/`에, `CredentialService`를 `MAIN/aicredential/application/CredentialService.java`에 구현한다:
+- [X] T089 [US4] `AiCredentialEntity`·`AiCredentialRepository`를 `MAIN/aicredential/persistence/`에, `CredentialService`를 `MAIN/aicredential/application/CredentialService.java`에 구현한다:
   - 등록: 검증 성공 시에만 암호화 저장하고, 기존 키가 있으면 교체한다
   - 첫 키면 `owner.selected_ai_provider`를 설정한다
   - 삭제 시 선택을 정리한다
   - `selectProvider`는 키가 있는 공급자만 허용한다
-- [ ] T090 [US4] `AiSettingsController`(`GET /settings/ai`, `PUT /settings/ai/credentials/{provider}`, `DELETE /settings/ai/credentials/{provider}`, `PUT /settings/ai/selection`)를 `MAIN/aicredential/web/`에, 템플릿을 `RES/templates/settings/ai.html`에 구현한다:
+- [X] T090 [US4] `AiSettingsController`(`GET /settings/ai`, `PUT /settings/ai/credentials/{provider}`, `DELETE /settings/ai/credentials/{provider}`, `PUT /settings/ai/selection`)를 `MAIN/aicredential/web/`에, 템플릿을 `RES/templates/settings/ai.html`에 구현한다:
   - 키 입력은 `type="password"`, `autocomplete="off"`이고 오류 재렌더링 시 값을 비운다
   - 키 없는 공급자에는 "키 필요"를 표시하고 선택할 수 없게 한다
   - T081·T083을 통과시킨다
-- [ ] T091 [US4] `RES/logback-spring.xml`에 마스킹 패턴(`sk-[A-Za-z0-9_-]{8,}`, `sk-ant-[A-Za-z0-9_-]{8,}` → `****`)을 추가한다. `CredentialService` 경계에서 예외를 감쌀 때 원인 메시지에서 키를 제거한다(T082 통과)
+- [X] T091 [US4] `RES/logback-spring.xml`에 마스킹 패턴(`sk-[A-Za-z0-9_-]{8,}`, `sk-ant-[A-Za-z0-9_-]{8,}` → `****`)을 추가한다. `CredentialService` 경계에서 예외를 감쌀 때 원인 메시지에서 키를 제거한다(T082 통과)
+
+**구현 메모 (2026-11-05)**: 계획과 달라진 점
+- T085 암호문 타입은 새로 만들지 않고 공통 `common.crypto.EncryptedSecret`을 쓴다. `CredentialCipher.encrypt`는 `EncryptedApiKey(secret, last4)`를 돌려준다.
+- T087 `AiGuideProvider`에는 이번 단계에서 쓰는 `provider()`·`verifyKey()`만 두었다. `generateGuide`와 `GuideOutcome`은 US3(T104~)에서 추가한다(호출처 없는 빈 구현을 두지 않기 위해).
+- T088 의존성이 스타터가 아닌 `spring-ai-anthropic`·`spring-ai-openai`라 모델 자동 구성이 없으므로 `spring.autoconfigure.exclude`는 필요 없다. 공급자 주소는 `app.ai.base-urls.*`(기본값은 공식 주소)로 바꿀 수 있고, 테스트는 WireMock을 가리킨다.
+- T089 JPA 엔티티 대신 다른 기능과 같은 방식인 JdbcClient로 `CredentialStore` 포트와 `JdbcCredentialStore`를 구현했다. V6에 `owner.selected_ai_provider` CHECK 제약을 추가했다.
+- T091 키를 로그에 넘기지 않는 것이 1차 규칙이고(`ApiKey.toString()`은 `****1234`, 어댑터는 상태 코드만 기록), `logback-spring.xml`의 `%replace` 마스킹은 메시지와 예외 스택에 모두 적용되는 2차 장치다.
+- T082의 "가이드 실패 흐름"은 US3에서 `ApiKeyLeakIT`에 추가한다. T083은 quickstart S4 2~4단계를 다루며, 1단계(가이드 버튼 → 설정 이동)는 US3 E2E에서 다룬다.
 
 **Checkpoint**: AI 키 등록·선택이 단독으로 동작하며, 아직 가이드 버튼은 없다.
 

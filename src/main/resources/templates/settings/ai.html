@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head(#{settings.ai.title})}"></head>
+<body>
+<a class="skip-link" href="#main">본문으로 건너뛰기</a>
+<header th:replace="~{layout :: header}"></header>
+<main id="main">
+    <h1 th:text="#{settings.ai.title}">AI 설정</h1>
+    <p class="muted" th:text="#{settings.ai.description}">설명</p>
+
+    <section th:fragment="panel" id="ai-settings" class="ai-settings" th:aria-label="#{settings.ai.title}">
+
+        <!-- 가이드용 공급자 선택(FR-023c): 키가 없는 공급자는 고를 수 없다 -->
+        <form class="ai-selection" th:hx-put="@{/settings/ai/selection}" hx-target="#ai-settings" hx-swap="outerHTML">
+            <fieldset th:attr="aria-describedby=${selectionErrorKey != null ? 'selection-error' : null}">
+                <legend th:text="#{settings.ai.selection}">가이드에 사용할 공급자</legend>
+                <label th:each="p : ${settings.providers()}" class="radio">
+                    <input type="radio" name="provider" th:value="${p.provider().name()}"
+                           th:checked="${settings.selected() == p.provider()}" th:disabled="${!p.hasKey()}">
+                    <span th:text="${p.provider().displayName()}">Claude</span>
+                    <span th:unless="${p.hasKey()}" class="muted" th:text="'(' + #{settings.ai.keyRequired} + ')'">(키 필요)</span>
+                </label>
+                <p th:if="${selectionErrorKey != null}" id="selection-error" class="field-error" role="alert"
+                   th:text="#{${selectionErrorKey}}">오류</p>
+            </fieldset>
+            <button th:replace="~{fragments/button :: button(#{settings.ai.selection.save}, 'secondary', 'submit')}"></button>
+        </form>
+
+        <!-- 공급자별 키 등록·교체·삭제(FR-023) -->
+        <div th:each="p : ${settings.providers()}" class="provider-card"
+             th:with="id=${#strings.toLowerCase(p.provider().name())}, hasError=${errorProvider == p.provider()}">
+            <h2 th:id="'provider-' + ${id}" th:text="${p.provider().displayName()}">Claude</h2>
+            <p class="key-status">
+                <span th:if="${p.hasKey()}" th:text="#{settings.ai.keyRegistered(${p.maskedKey()})}">등록된 키 ****1234</span>
+                <span th:unless="${p.hasKey()}" class="muted" th:text="#{settings.ai.keyRequired}">키 필요</span>
+            </p>
+            <form class="form-inline"
+                  th:hx-put="@{/settings/ai/credentials/{provider}(provider=${p.provider().name()})}"
+                  hx-target="#ai-settings" hx-swap="outerHTML">
+                <div class="field">
+                    <label th:for="'key-' + ${id}" th:text="#{settings.ai.apiKey(${p.provider().displayName()})}">Claude API 키</label>
+                    <input th:id="'key-' + ${id}" name="apiKey" type="password" value="" autocomplete="off"
+                           spellcheck="false" required
+                           th:attr="aria-invalid=${hasError ? 'true' : null},
+                                    aria-describedby=${hasError ? 'key-' + id + '-error' : 'key-' + id + '-hint'}">
+                    <p th:unless="${hasError}" th:id="'key-' + ${id} + '-hint'" class="field-hint"
+                       th:text="#{settings.ai.apiKeyHint}">힌트</p>
+                    <p th:if="${hasError}" th:id="'key-' + ${id} + '-error'" class="field-error" role="alert"
+                       th:text="#{${errorKey}}">오류</p>
+                </div>
+                <button th:replace="~{fragments/button :: button(${p.hasKey()} ? #{settings.ai.replace} : #{settings.ai.save}, 'primary', 'submit')}"></button>
+            </form>
+            <button th:if="${p.hasKey()}" type="button" class="btn-link danger"
+                    th:hx-delete="@{/settings/ai/credentials/{provider}(provider=${p.provider().name()})}"
+                    hx-target="#ai-settings" hx-swap="outerHTML"
+                    th:hx-confirm="#{settings.ai.deleteConfirm}"
+                    th:text="#{settings.ai.delete(${p.provider().displayName()})}">Claude 키 삭제</button>
+        </div>
+
+        <th:block th:if="${toastKey != null}">
+            <div th:replace="~{fragments/toast :: toast}"></div>
+        </th:block>
+    </section>
+</main>
+<th:block th:replace="~{layout :: chrome}"></th:block>
+
+</body>
+</html>
