@@ -33,7 +33,7 @@
 
 ## 아키텍처 규칙 (ArchitectureTest가 강제)
 
-- 기능 패키지: `auth`, `portfolio`, `market` (계획상 `aicredential`, `guide` 추가 예정), 공용은 `common`.
+- 기능 패키지: `auth`, `portfolio`, `market`, `aicredential`, `guide`(US3에서 확장), 공용은 `common`.
 - 각 기능 안에서 `web → application → domain` 한 방향. `domain`은 domain 바깥에 의존하지 않는다.
 - `web`은 `persistence`/`adapter`에 의존하지 않는다. `application`은 `web`에 의존하지 않는다.
 - 외부 연동·영속성은 `application/port`의 **인터페이스**를 `persistence/` 또는 `adapter/`에서 구현한다.
