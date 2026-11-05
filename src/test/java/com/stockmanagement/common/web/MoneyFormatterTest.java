@@ -70,5 +70,6 @@ class MoneyFormatterTest {
         Instant instant = Instant.parse("2026-11-05T05:32:05Z");
         assertThat(formatter.time(instant)).isEqualTo("14:32:05");
         assertThat(formatter.shortTime(instant)).isEqualTo("14:32");
+        assertThat(formatter.dateTime(instant)).isEqualTo("2026-11-05 14:32");
     }
 }
