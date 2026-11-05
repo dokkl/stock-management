@@ -1,11 +1,78 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <body>
-<!-- 진행 중: 2초마다 상태를 받아 자기 자신을 바꾼다. 완료·실패 프래그먼트에는 폴링이 없어 자연히 멈춘다. -->
-<div th:fragment="progress" class="guide-card" th:id="'guide-' + ${guide.id}"
-     th:hx-get="@{/guides/{id}/status(id=${guide.id})}" hx-trigger="every 2s" hx-swap="outerHTML" aria-busy="true">
-    <h2 th:text="#{guide.title(${guide.securityName})}">삼성전자 가이드</h2>
-    <p class="state" th:text="#{guide.progress(${guide.provider.displayName()})}">Claude가 분석하고 있습니다…</p>
+<!--
+  가이드 진행 중 카드. 안쪽의 숨은 폴러가 2초마다 상태를 묻는다: 진행 중이면 204(교체 없음)라 카드와 애니메이션이
+  그대로 이어지고, 끝나면 결과·실패 프래그먼트가 카드 전체(#guide-{id})를 바꾼다.
+  단계 표시는 app.js가 경과 시간(서버가 계산한 elapsedSeconds에서 시작)에 맞춰 넘긴다. 실제 서버 단계가 아니라
+  일반적인 소요 시간에 맞춘 안내다.
+-->
+<div th:fragment="progress" class="guide-card guide-progress" th:id="'guide-' + ${guide.id}" aria-busy="true"
+     data-guide-progress th:attr="data-elapsed=${elapsedSeconds != null ? elapsedSeconds : 0},
+                                  data-expected=${guide.provider.name() == 'ANTHROPIC' ? 60 : 30}"
+     th:with="search=${guide.provider.name() == 'ANTHROPIC'}">
+    <div class="guide-poller" th:hx-get="@{/guides/{id}/status(id=${guide.id})}" hx-trigger="every 2s"
+         th:hx-target="'#guide-' + ${guide.id}" hx-swap="outerHTML"></div>
+
+    <header class="guide-header">
+        <h2 th:text="#{guide.title(${guide.securityName})}">삼성전자 가이드</h2>
+        <p class="muted guide-meta" th:text="${guide.provider.displayName()} + ' · ' + #{guide.progress.badge}">Claude · 분석 중</p>
+    </header>
+
+    <!-- 장식용 애니메이션: 차트를 훑어 보는 스캔 -->
+    <div class="analysis-visual" aria-hidden="true">
+        <svg viewBox="0 0 240 64" preserveAspectRatio="none" class="analysis-chart">
+            <g class="analysis-bars">
+                <rect x="6" y="34" width="10" height="24"/><rect x="26" y="28" width="10" height="30"/>
+                <rect x="46" y="38" width="10" height="20"/><rect x="66" y="22" width="10" height="36"/>
+                <rect x="86" y="30" width="10" height="28"/><rect x="106" y="18" width="10" height="40"/>
+                <rect x="126" y="26" width="10" height="32"/><rect x="146" y="14" width="10" height="44"/>
+                <rect x="166" y="24" width="10" height="34"/><rect x="186" y="10" width="10" height="48"/>
+                <rect x="206" y="20" width="10" height="38"/><rect x="226" y="8" width="10" height="50"/>
+            </g>
+            <path class="analysis-line" d="M11 30 L31 24 L51 33 L71 18 L91 26 L111 14 L131 22 L151 10 L171 20 L191 6 L211 16 L231 4"/>
+            <rect class="analysis-scan" x="0" y="0" width="24" height="64"/>
+        </svg>
+    </div>
+
+    <p class="guide-progress-status" role="status"
+       th:text="#{guide.progress(${guide.provider.displayName()})}">Claude가 분석하고 있습니다.</p>
+    <progress class="guide-progress-bar" max="100" value="0" th:aria-label="#{guide.progress.bar}"></progress>
+
+    <ol class="analysis-steps">
+        <li data-at="0">
+            <span class="step-icon" aria-hidden="true"></span>
+            <span class="step-text"><strong th:text="#{guide.step.collect}">시세·일봉 데이터 수집</strong>
+                <span class="step-detail" th:text="#{guide.step.collect.detail}">60거래일 가격과 거래량을 불러옵니다</span></span>
+        </li>
+        <li data-at="4">
+            <span class="step-icon" aria-hidden="true"></span>
+            <span class="step-text"><strong th:text="#{guide.step.supply}">수급 분석</strong>
+                <span class="step-detail" th:text="#{guide.step.supply.detail}">외국인·기관·개인 매매와 공매도를 살펴봅니다</span></span>
+        </li>
+        <li th:if="${search}" data-at="9">
+            <span class="step-icon" aria-hidden="true"></span>
+            <span class="step-text"><strong th:text="#{guide.step.issues}">국내외 이슈 검색</strong>
+                <span class="step-detail" th:text="#{guide.step.issues.detail}">정치·지정학·산업 뉴스를 웹에서 찾고 있습니다</span></span>
+        </li>
+        <li th:attr="data-at=${search ? 25 : 10}">
+            <span class="step-icon" aria-hidden="true"></span>
+            <span class="step-text"><strong th:text="#{guide.step.overall}">종합 판단</strong>
+                <span class="step-detail" th:text="#{guide.step.overall.detail}">기술·수급·이슈를 함께 저울질합니다</span></span>
+        </li>
+        <li th:attr="data-at=${search ? 40 : 18}">
+            <span class="step-icon" aria-hidden="true"></span>
+            <span class="step-text"><strong th:text="#{guide.step.report}">리포트 작성</strong>
+                <span class="step-detail" th:text="#{guide.step.report.detail}">결과를 읽기 쉽게 정리하고 있습니다</span></span>
+        </li>
+    </ol>
+
+    <p class="muted guide-progress-foot">
+        <span th:text="#{guide.progress.elapsed}">경과</span> <span data-elapsed-text>0</span><span th:text="#{guide.progress.seconds}">초</span>
+        · <span th:text="#{guide.progress.leave}">다른 화면으로 이동해도 분석은 계속됩니다.</span>
+    </p>
 </div>
+<!-- 진행 중 폴링 응답(204, 본문 없음) -->
+<th:block th:fragment="none"></th:block>
 </body>
 </html>

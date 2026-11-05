@@ -7,6 +7,8 @@ import com.stockmanagement.guide.application.GuideView;
 import com.stockmanagement.portfolio.application.DashboardQuery;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.time.Clock;
+import java.time.Duration;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -25,10 +27,12 @@ class GuideController {
 
     private final GuideService guideService;
     private final DashboardQuery dashboardQuery;
+    private final Clock clock;
 
-    GuideController(GuideService guideService, DashboardQuery dashboardQuery) {
+    GuideController(GuideService guideService, DashboardQuery dashboardQuery, Clock clock) {
         this.guideService = guideService;
         this.dashboardQuery = dashboardQuery;
+        this.clock = clock;
     }
 
     @PostMapping("/holdings/{id}/guides")
@@ -38,7 +42,7 @@ class GuideController {
                 GuideView guide = requireGuide(accepted.guideId());
                 response.setStatus(HttpStatus.ACCEPTED.value());
                 quotaChanged(response, guide.securityId());
-                model.addAttribute("guide", guide);
+                progress(model, guide);
                 yield "guide/progress :: progress";
             }
             case GuideRequestResult.NoCredential noCredential -> {
@@ -59,21 +63,33 @@ class GuideController {
         };
     }
 
+    /** 진행 중이면 204: 진행 카드(애니메이션)를 그대로 두고 폴링만 계속한다. 끝나면 결과·실패 카드로 바꾼다. */
     @GetMapping("/guides/{id}/status")
     String status(@PathVariable long id, Model model, HttpServletResponse response) {
         GuideView guide = requireGuide(id);
-        model.addAttribute("guide", guide);
         if (guide.isPending()) {
-            return "guide/progress :: progress";
+            response.setStatus(HttpStatus.NO_CONTENT.value());
+            return "guide/progress :: none";
         }
+        model.addAttribute("guide", guide);
         quotaChanged(response, guide.securityId());
         return guide.isSucceeded() ? "guide/result :: result" : "guide/failure :: failure";
     }
 
     @GetMapping("/guides/{id}")
     String detail(@PathVariable long id, Model model) {
-        model.addAttribute("guide", requireGuide(id));
+        progress(model, requireGuide(id));
         return "guide/detail";
+    }
+
+    /** 진행 카드는 요청 후 지난 시간부터 단계 표시를 이어 간다(다시 열어도 처음부터 시작하지 않게). */
+    private void progress(Model model, GuideView guide) {
+        model.addAttribute("guide", guide);
+        model.addAttribute(
+                "elapsedSeconds",
+                Math.max(
+                        0,
+                        Duration.between(guide.requestedAt(), clock.instant()).toSeconds()));
     }
 
     /** 가이드 버튼(남은 횟수) 다시 그리기. */

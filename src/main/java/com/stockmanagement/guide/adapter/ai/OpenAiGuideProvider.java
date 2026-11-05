@@ -35,7 +35,8 @@ class OpenAiGuideProvider implements AiGuideProvider {
         return generation.generate(
                 provider(),
                 factory.model(provider()),
-                () -> factory.openAi(key, GuideGeneration.MAX_OUTPUT_TOKENS),
-                prompt);
+                () -> factory.openAiGuide(key, GuideGeneration.MAX_OUTPUT_TOKENS),
+                prompt,
+                null);
     }
 }

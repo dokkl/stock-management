@@ -3,10 +3,12 @@ package com.stockmanagement.market.adapter.toss;
 import com.stockmanagement.market.application.port.MarketDataProvider;
 import com.stockmanagement.market.domain.DailyCandle;
 import com.stockmanagement.market.domain.Exchange;
+import com.stockmanagement.market.domain.InvestorFlow;
 import com.stockmanagement.market.domain.Market;
 import com.stockmanagement.market.domain.MarketCalendar;
 import com.stockmanagement.market.domain.QuoteResult;
 import com.stockmanagement.market.domain.SecurityListing;
+import com.stockmanagement.market.domain.ShortSellingDay;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -51,6 +53,10 @@ class TossMarketDataProvider implements MarketDataProvider {
     private static final ParameterizedTypeReference<TossHttpClient.Envelope<CandlePage>> CANDLES =
             new ParameterizedTypeReference<>() {};
     private static final ParameterizedTypeReference<TossHttpClient.Envelope<List<StockInfo>>> STOCKS =
+            new ParameterizedTypeReference<>() {};
+    private static final ParameterizedTypeReference<TossHttpClient.Envelope<TrendPage<InvestorRecord>>> INVESTORS =
+            new ParameterizedTypeReference<>() {};
+    private static final ParameterizedTypeReference<TossHttpClient.Envelope<TrendPage<ShortSellingRecord>>> SHORTS =
             new ParameterizedTypeReference<>() {};
 
     private final TossHttpClient httpClient;
@@ -186,6 +192,49 @@ class TossMarketDataProvider implements MarketDataProvider {
                 .toList();
     }
 
+    /** GET /api/v1/stocks/{symbol}/investor-trading?count=… (STOCK_TRADING_TREND 그룹). 국내 종목만 지원한다. */
+    @Override
+    public List<InvestorFlow> fetchInvestorFlows(String symbol, int days) {
+        TrendPage<InvestorRecord> page = withToken(token -> httpClient.get(
+                TossRateLimiter.Group.STOCK_TRADING_TREND,
+                token,
+                uri -> uri.path("/api/v1/stocks/{symbol}/investor-trading")
+                        .queryParam("count", trendDays(days))
+                        .build(symbol),
+                INVESTORS));
+        return page.records().stream()
+                .map(InvestorRecord::toDomain)
+                .sorted(java.util.Comparator.comparing(InvestorFlow::date).reversed())
+                .toList();
+    }
+
+    /** GET /api/v1/stocks/{symbol}/short-selling?count=… (STOCK_TRADING_TREND 그룹). 국내 종목만 지원한다. */
+    @Override
+    public List<ShortSellingDay> fetchShortSelling(String symbol, int days) {
+        TrendPage<ShortSellingRecord> page = withToken(token -> httpClient.get(
+                TossRateLimiter.Group.STOCK_TRADING_TREND,
+                token,
+                uri -> uri.path("/api/v1/stocks/{symbol}/short-selling")
+                        .queryParam("count", trendDays(days))
+                        .build(symbol),
+                SHORTS));
+        return page.records().stream()
+                .map(r -> new ShortSellingDay(LocalDate.parse(r.date()), decimal(r.shortSellingVolumeRate())))
+                .sorted(java.util.Comparator.comparing(ShortSellingDay::date).reversed())
+                .toList();
+    }
+
+    private static int trendDays(int days) {
+        if (days < 1 || days > MAX_TRADING_TREND_DAYS) {
+            throw new IllegalArgumentException("조회 일수는 1~" + MAX_TRADING_TREND_DAYS + "입니다: " + days);
+        }
+        return days;
+    }
+
+    private static BigDecimal decimal(String value) {
+        return value == null ? null : new BigDecimal(value);
+    }
+
     /** GET /api/v1/stocks?symbols=… (STOCK 그룹). 거래정지 여부는 국내 종목(KRX)에만 제공된다. */
     @Override
     public Set<String> fetchSuspendedSymbols(List<String> symbols) {
@@ -269,4 +318,32 @@ class TossMarketDataProvider implements MarketDataProvider {
     }
 
     record KoreanMarketDetail(Boolean krxTradingSuspended) {}
+
+    record TrendPage<T>(List<T> records) {
+        TrendPage {
+            records = records == null ? List.of() : records;
+        }
+    }
+
+    record Volume(String netBuyVolume) {}
+
+    record Holding(String holdingRate) {}
+
+    record InvestorRecord(
+            String date, Volume individual, Volume foreigner, Volume institution, Holding foreignerHolding) {
+        InvestorFlow toDomain() {
+            return new InvestorFlow(
+                    LocalDate.parse(date),
+                    net(foreigner),
+                    net(institution),
+                    net(individual),
+                    foreignerHolding == null ? null : decimal(foreignerHolding.holdingRate()));
+        }
+
+        private static BigDecimal net(Volume volume) {
+            return volume == null ? null : decimal(volume.netBuyVolume());
+        }
+    }
+
+    record ShortSellingRecord(String date, String shortSellingVolumeRate) {}
 }

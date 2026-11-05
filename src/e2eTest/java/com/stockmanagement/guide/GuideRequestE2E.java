@@ -85,9 +85,12 @@ class GuideRequestE2E extends E2ETestBase {
         waitForHtmx();
         assertThat(guideButton()).hasText("가이드 (남은 2회)");
 
-        // S5-1: 진행 표시 후 결과(요약·진단·행동·근거·위험·면책·공급자와 모델)
+        // S5-1: 분석 진행 카드(단계·진행 막대) 후 결과(요약·진단·행동·근거·위험·면책·공급자와 모델)
         guideButton().click();
         assertThat(panel().locator("[aria-busy=true]")).isVisible();
+        assertThat(panel().locator(".analysis-steps li.is-active")).containsText("시세·일봉 데이터 수집");
+        assertThat(panel().getByRole(AriaRole.PROGRESSBAR)).isVisible();
+        assertNoAccessibilityViolations();
         assertThat(panel())
                 .containsText(
                         "최근 60일 동안 완만하게 올랐습니다.",
@@ -111,6 +114,48 @@ class GuideRequestE2E extends E2ETestBase {
         assertThat(guideButton()).hasText("가이드 (남은 0회)");
         assertThat(guideButton()).isDisabled();
         assertThat(page.getByText("내일 00:00 (KST) 초기화")).isVisible();
+        assertNoAccessibilityViolations();
+    }
+
+    @Test
+    void claudeGuideShowsSupplyDemandAndSourcedIssues() {
+        setupAndLogin();
+        credentialStore.save(
+                AiProvider.ANTHROPIC, cipher.encrypt(ApiKey.of("sk-ant-e2e-guide-key-5678")), Instant.now());
+        credentialStore.select(AiProvider.ANTHROPIC);
+        String guide = "{\\\"summary\\\":\\\"완만한 상승 흐름입니다.\\\",\\\"diagnosis\\\":\\\"평단가 근처입니다.\\\","
+                + "\\\"supplyDemand\\\":\\\"외국인이 순매수 중입니다.\\\",\\\"issues\\\":[{\\\"title\\\":\\\"반도체 수출 규제 강화\\\","
+                + "\\\"summary\\\":\\\"대중 수출 규제가 강화되었습니다.\\\",\\\"impact\\\":\\\"NEGATIVE\\\","
+                + "\\\"sourceUrl\\\":\\\"https://news.example.com/chip\\\",\\\"sourceTitle\\\":\\\"예시 뉴스\\\","
+                + "\\\"publishedDate\\\":\\\"2026-11-04\\\"}],\\\"overall\\\":\\\"수급은 좋지만 규제 이슈로 관망합니다.\\\","
+                + "\\\"action\\\":\\\"WATCH\\\",\\\"rationale\\\":\\\"이슈를 확인한 뒤 판단합니다.\\\",\\\"risks\\\":[\\\"규제\\\"]}";
+        WIREMOCK.stubFor(post(urlPathEqualTo("/v1/messages"))
+                .willReturn(json("{\"id\":\"msg_1\",\"type\":\"message\",\"role\":\"assistant\","
+                        + "\"model\":\"claude-sonnet-5-5-20261001\",\"content\":["
+                        + "{\"type\":\"server_tool_use\",\"id\":\"srvtoolu_1\",\"name\":\"web_search\",\"input\":{\"query\":\"삼성전자\"}},"
+                        + "{\"type\":\"web_search_tool_result\",\"tool_use_id\":\"srvtoolu_1\",\"content\":["
+                        + "{\"type\":\"web_search_result\",\"url\":\"https://news.example.com/chip\",\"title\":\"예시 뉴스\","
+                        + "\"encrypted_content\":\"enc\",\"page_age\":\"2026-11-04\"}]},"
+                        + "{\"type\":\"text\",\"text\":\"" + guide + "\"}],"
+                        + "\"stop_reason\":\"end_turn\",\"stop_sequence\":null,"
+                        + "\"usage\":{\"input_tokens\":1,\"output_tokens\":1}}")));
+        page.reload();
+        waitForHtmx();
+
+        guideButton().click();
+
+        assertThat(panel())
+                .containsText(
+                        "종합 판단",
+                        new com.microsoft.playwright.assertions.LocatorAssertions.ContainsTextOptions()
+                                .setTimeout(15_000));
+        assertThat(panel()).containsText("수급은 좋지만 규제 이슈로 관망합니다.");
+        assertThat(panel()).containsText("외국인이 순매수 중입니다.");
+        assertThat(panel()).containsText("악재");
+        Locator source = panel().getByRole(AriaRole.LINK, new Locator.GetByRoleOptions().setName("예시 뉴스"));
+        assertThat(source).hasAttribute("href", "https://news.example.com/chip");
+        assertThat(source).hasAttribute("target", "_blank");
+        assertThat(panel()).containsText("Claude · claude-sonnet-5-5-20261001");
         assertNoAccessibilityViolations();
     }
 

@@ -1,7 +1,10 @@
 package com.stockmanagement.guide;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
+import static com.github.tomakehurst.wiremock.client.WireMock.notContaining;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -75,6 +78,66 @@ class AiGenerateGuideIT extends IntegrationTestBase {
             assertThat(g.model()).isEqualTo("gpt-5-2026-08-01");
             assertThat(g.content().summary()).startsWith("최근 60일");
         });
+    }
+
+    @Test
+    void claudeSearchesWebAndKeepsOnlyIssuesFromSearchResults() {
+        new AiStubs(WIREMOCK)
+                .anthropicGuideWithSearch(
+                        AiStubs.comprehensiveJson("https://news.example.com/chip/", "https://made-up.example.com/fake"),
+                        "https://news.example.com/chip",
+                        "https://news.example.com/fx");
+
+        GuideOutcome outcome = anthropic();
+
+        WIREMOCK.verify(postRequestedFor(urlPathEqualTo(AiStubs.ANTHROPIC_PATH))
+                .withRequestBody(containing("web_search"))
+                .withRequestBody(containing("웹 검색으로")));
+        assertThat(outcome).isInstanceOfSatisfying(GuideOutcome.Generated.class, g -> {
+            assertThat(g.model()).isEqualTo("claude-sonnet-5-5-20261001");
+            assertThat(g.content().isComprehensive()).isTrue();
+            assertThat(g.content().supplyDemand()).isEqualTo("외국인이 5일 연속 순매수했습니다.");
+            assertThat(g.content().issues())
+                    .as("검색 결과에 없는 출처는 버린다")
+                    .extracting(issue -> issue.sourceUrl())
+                    .containsExactly("https://news.example.com/chip/");
+        });
+    }
+
+    @Test
+    void openAiDoesNotSearchAndDropsIssues() {
+        stubOpenAiText(AiStubs.comprehensiveJson("https://news.example.com/chip"), "gpt-5");
+
+        GuideOutcome outcome = openAi();
+
+        WIREMOCK.verify(postRequestedFor(urlPathEqualTo(AiStubs.OPENAI_PATH))
+                .withRequestBody(notContaining("web_search"))
+                .withRequestBody(containing("빈 배열")));
+        assertThat(outcome).isInstanceOfSatisfying(GuideOutcome.Generated.class, g -> {
+            assertThat(g.content().issues()).isEmpty();
+            assertThat(g.content().overall()).contains("수출 규제");
+        });
+    }
+
+    @Test
+    void jsonAfterExplanationIsStillStructured() {
+        stubAnthropicText("분석 결과입니다.\n" + GUIDE_JSON + "\n참고하세요.", "claude-sonnet-5-5");
+
+        assertThat(anthropic())
+                .isInstanceOfSatisfying(
+                        GuideOutcome.Generated.class,
+                        g -> assertThat(g.content()).isNotNull());
+    }
+
+    @Test
+    void promptCarriesSupplyDemandSection() {
+        stubOpenAiText(GUIDE_JSON, "gpt-5");
+
+        openAi();
+
+        WIREMOCK.verify(postRequestedFor(urlPathEqualTo(AiStubs.OPENAI_PATH))
+                .withRequestBody(containing("[수급]"))
+                .withRequestBody(containing("supplyDemand")));
     }
 
     @Test

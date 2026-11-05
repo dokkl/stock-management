@@ -10,8 +10,12 @@ import com.stockmanagement.guide.domain.GuideOutcome;
 import com.stockmanagement.guide.domain.GuidePrompt;
 import com.stockmanagement.guide.domain.GuidePromptBuilder;
 import com.stockmanagement.guide.domain.GuideStatus;
+import com.stockmanagement.guide.domain.SupplyDemand;
 import com.stockmanagement.market.application.port.MarketDataProvider;
 import com.stockmanagement.market.domain.DailyCandle;
+import com.stockmanagement.market.domain.InvestorFlow;
+import com.stockmanagement.market.domain.Market;
+import com.stockmanagement.market.domain.ShortSellingDay;
 import com.stockmanagement.market.domain.TradingStatus;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -30,7 +34,7 @@ import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Component;
 
 /**
- * 가이드 백그라운드 실행(research R8): 일봉 조회 → 프롬프트 → 키 복호화 → AI 호출 → 결과 기록. 가상 스레드에서 돈다.
+ * 가이드 백그라운드 실행(research R8): 일봉·수급 조회 → 프롬프트 → 키 복호화 → AI 호출 → 결과 기록. 가상 스레드에서 돈다.
  * 어떤 경우에도 요청을 PENDING으로 남기지 않는다: 성공이면 SUCCEEDED, 아니면 FAILED(슬롯 반환)다.
  */
 @Component
@@ -38,6 +42,8 @@ public class GuideRunner {
 
     private static final Logger log = LoggerFactory.getLogger(GuideRunner.class);
     static final String TIMER = "guide.generation.duration";
+    /** 수급 요약에 쓰는 기간(거래일). */
+    static final int SUPPLY_DAYS = 20;
 
     private final GuideStore store;
     private final CredentialService credentials;
@@ -107,10 +113,36 @@ public class GuideRunner {
                     "가이드용 일봉 조회 실패: guideId={}, type={}", job.id(), e.getClass().getSimpleName());
             return fail(job, FailureKind.TRANSIENT_ERROR);
         }
-        return record(job, provider.generateGuide(key.get(), prompt(job, candles)));
+        return record(job, provider.generateGuide(key.get(), prompt(job, candles, supplyDemand(job, candles))));
     }
 
-    private static GuidePrompt prompt(GuideJob job, List<DailyCandle> candles) {
+    /**
+     * 수급 요약. 투자자별 매매·공매도는 국내 종목만 제공되며, 조회에 실패해도 가이드는 거래량만으로 진행한다(보조 데이터).
+     */
+    private SupplyDemand supplyDemand(GuideJob job, List<DailyCandle> candles) {
+        List<InvestorFlow> flows = List.of();
+        List<ShortSellingDay> shorts = List.of();
+        if (job.market() == Market.KR) {
+            flows = optional(job, "투자자별 매매동향", () -> market.fetchInvestorFlows(job.symbol(), SUPPLY_DAYS));
+            shorts = optional(job, "공매도", () -> market.fetchShortSelling(job.symbol(), SUPPLY_DAYS));
+        }
+        return SupplyDemand.of(candles, flows, shorts);
+    }
+
+    private static <T> List<T> optional(GuideJob job, String what, java.util.function.Supplier<List<T>> fetch) {
+        try {
+            return fetch.get();
+        } catch (RuntimeException e) {
+            log.warn(
+                    "가이드용 {} 조회 실패, 제외하고 진행: guideId={}, type={}",
+                    what,
+                    job.id(),
+                    e.getClass().getSimpleName());
+            return List.of();
+        }
+    }
+
+    private static GuidePrompt prompt(GuideJob job, List<DailyCandle> candles, SupplyDemand supplyDemand) {
         List<BigDecimal> closes = candles.isEmpty()
                 ? List.of(job.price())
                 : candles.stream().map(DailyCandle::close).toList();
@@ -119,6 +151,7 @@ public class GuideRunner {
                 job.price(),
                 job.prevClose() == null ? job.price() : job.prevClose(),
                 closes,
+                supplyDemand,
                 job.avgPrice(),
                 job.quantity());
     }

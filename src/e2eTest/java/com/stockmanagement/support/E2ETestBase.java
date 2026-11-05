@@ -53,6 +53,7 @@ public abstract class E2ETestBase {
         registry.add("app.ai.base-urls.anthropic", WIREMOCK::baseUrl);
         registry.add("app.ai.base-urls.openai", () -> WIREMOCK.baseUrl() + "/v1");
         registry.add("app.ai.timeout", () -> "2s");
+        registry.add("app.ai.guide-timeout", () -> "2s");
         registry.add("app.crypto.key", () -> Base64.getEncoder().encodeToString(new byte[32]));
         registry.add("app.scheduling.enabled", () -> "false");
         registry.add("app.market.master-sync-on-startup", () -> "false");

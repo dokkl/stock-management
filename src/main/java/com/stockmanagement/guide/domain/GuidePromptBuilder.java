@@ -35,6 +35,23 @@ public final class GuidePromptBuilder {
             List<BigDecimal> closesNewestFirst,
             BigDecimal avgPrice,
             BigDecimal quantity) {
+        return build(stock, price, prevClose, closesNewestFirst, null, avgPrice, quantity);
+    }
+
+    /**
+     * 수급 요약을 포함해 분석 입력을 만든다.
+     *
+     * @param closesNewestFirst 일봉 종가(최신순). 앞에서부터 최대 60개를 쓴다
+     * @param supplyDemand 수급 요약. 없으면 null
+     */
+    public static GuidePrompt build(
+            Stock stock,
+            BigDecimal price,
+            BigDecimal prevClose,
+            List<BigDecimal> closesNewestFirst,
+            SupplyDemand supplyDemand,
+            BigDecimal avgPrice,
+            BigDecimal quantity) {
         if (closesNewestFirst.isEmpty()) {
             throw new IllegalArgumentException("일봉 종가가 없습니다");
         }
@@ -58,7 +75,8 @@ public final class GuidePromptBuilder {
                 avgPrice,
                 quantity,
                 valuation.unrealizedPnl().amount(),
-                valuation.returnRate());
+                valuation.returnRate(),
+                supplyDemand);
     }
 
     /** 최근 n개(부족하면 있는 만큼) 종가의 평균. closes는 오래된 순이다. */
