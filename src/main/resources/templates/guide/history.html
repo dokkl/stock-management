@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head(#{guide.history.title(${history.securityName})})}"></head>
+<body>
+<a class="skip-link" href="#main">본문으로 건너뛰기</a>
+<header th:replace="~{layout :: header}"></header>
+<main id="main">
+    <!-- 종목별 가이드 기록(FR-025~FR-028): 최신순 20건, 값은 모두 요청 당시 스냅샷. 기록은 읽기 전용이다. -->
+    <p><a th:href="@{/}" th:text="#{guide.history.back}">← 대시보드</a></p>
+    <h1>
+        <span th:text="#{guide.history.title(${history.securityName})}">삼성전자 가이드 기록</span>
+        <span class="security-code" th:text="${history.symbol}">005930</span>
+    </h1>
+
+    <th:block th:if="${history.isEmpty()}">
+        <div th:replace="~{fragments/states :: empty('guide.history.empty')}"></div>
+    </th:block>
+
+    <ol th:unless="${history.isEmpty()}" class="guide-history">
+        <li th:each="e : ${history.entries()}" class="guide-card">
+            <header class="guide-header">
+                <h2 class="guide-history-time">
+                    <a th:href="@{/guides/{id}(id=${e.id()})}" th:text="${#money.dateTime(e.requestedAt())}">2026-11-05 14:32</a>
+                </h2>
+                <p class="muted guide-meta" th:text="${e.provider().displayName()} + ' · ' + ${e.model()}">Claude · claude-sonnet-5-5</p>
+            </header>
+            <p class="guide-history-tags">
+                <span th:if="${e.action() != null}" class="guide-badge"
+                      th:text="#{'guide.action.' + ${e.action().name()}}">관망</span>
+                <span class="muted" th:text="${e.accountName()}">키움 일반</span>
+                <span th:if="${e.accountDeleted()}" class="guide-badge guide-badge-muted" th:text="#{guide.history.accountDeleted}">삭제된 계좌</span>
+                <span th:if="${!e.accountDeleted() and e.holdingEnded()}" class="guide-badge guide-badge-muted" th:text="#{guide.history.holdingEnded}">보유 종료</span>
+            </p>
+            <p th:text="${e.headline()}">결론 한 줄</p>
+            <dl class="guide-snapshot">
+                <div><dt th:text="#{guide.history.price}">당시 현재가</dt><dd th:text="${#money.price(e.price(), e.currency())}">₩71,000</dd></div>
+                <div><dt th:text="#{guide.history.avgPrice}">당시 평단가</dt><dd th:text="${#money.avgPrice(e.avgPrice(), e.currency())}">₩71,500</dd></div>
+                <div><dt th:text="#{guide.history.quantity}">당시 수량</dt><dd th:text="${#money.quantity(e.quantity())}">10주</dd></div>
+                <div><dt th:text="#{guide.history.returnRate}">당시 수익률</dt>
+                    <dd th:class="${e.returnRate().signum() > 0} ? 'up' : (${e.returnRate().signum() < 0} ? 'down' : 'flat')"
+                        th:text="${#money.percent(e.returnRate())}">−0.70%</dd></div>
+            </dl>
+        </li>
+    </ol>
+
+    <nav th:if="${history.hasPrevious() or history.hasNext()}" class="pagination" th:aria-label="#{guide.history.pages}">
+        <a th:if="${history.hasPrevious()}" class="btn btn-sm"
+           th:href="@{/securities/{id}/guides(id=${history.securityId()}, page=${history.page() - 1})}"
+           th:text="#{guide.history.newer}">← 최근 기록</a>
+        <a th:if="${history.hasNext()}" class="btn btn-sm"
+           th:href="@{/securities/{id}/guides(id=${history.securityId()}, page=${history.page() + 1})}"
+           th:text="#{guide.history.older}">이전 기록 →</a>
+    </nav>
+</main>
+<th:block th:replace="~{layout :: chrome}"></th:block>
+</body>
+</html>

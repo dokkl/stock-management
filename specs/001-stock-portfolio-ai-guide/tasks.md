@@ -568,7 +568,7 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T114 [P] [US5] 가이드 기록 조회 통합 테스트를 `IT/guide/GuideHistoryIT.java`에 작성한다:
+- [X] T114 [P] [US5] 가이드 기록 조회 통합 테스트를 `IT/guide/GuideHistoryIT.java`에 작성한다:
   - `GET /securities/{id}/guides?page=`가 20건씩 최신순, SUCCEEDED만 반환
   - 평단가 수정 후에도 스냅샷 값 유지
   - holding 삭제 시 `holding_id` NULL이 되고 "보유 종료" 표시
@@ -576,16 +576,21 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
   - DB에서 SUCCEEDED 행을 UPDATE하면 트리거가 거부(FR-028)
   - 빈 상태 문구
   - 미인증 401, 없는 종목 id 404
-- [ ] T115 [P] [US5] E2E 시나리오를 `E2E/guide/GuideHistoryE2E.java`에 작성한다. quickstart S6 1~3단계와 axe 위반 0건을 검증한다
+- [X] T115 [P] [US5] E2E 시나리오를 `E2E/guide/GuideHistoryE2E.java`에 작성한다. quickstart S6 1~3단계와 axe 위반 0건을 검증한다
 
 ### Implementation for User Story 5
 
-- [ ] T116 [US5] `GuideHistoryQuery`를 `MAIN/guide/persistence/GuideHistoryJdbcQuery.java`에 구현한다. `ix_guide_history` 인덱스를 쓰고, LIMIT 20 OFFSET, `holding_id IS NULL`이면 "보유 종료", `account.deleted_at IS NOT NULL`이면 "삭제된 계좌"를 판별하는 단일 쿼리다(guide_request.account_id JOIN)
-- [ ] T117 [US5] `GuideHistoryController`(`GET /securities/{id}/guides`)를 `MAIN/guide/web/GuideHistoryController.java`에, 템플릿을 `RES/templates/guide/history.html`에 구현한다:
+- [X] T116 [US5] `GuideHistoryQuery`를 `MAIN/guide/persistence/GuideHistoryJdbcQuery.java`에 구현한다. `ix_guide_history` 인덱스를 쓰고, LIMIT 20 OFFSET, `holding_id IS NULL`이면 "보유 종료", `account.deleted_at IS NOT NULL`이면 "삭제된 계좌"를 판별하는 단일 쿼리다(guide_request.account_id JOIN)
+- [X] T117 [US5] `GuideHistoryController`(`GET /securities/{id}/guides`)를 `MAIN/guide/web/GuideHistoryController.java`에, 템플릿을 `RES/templates/guide/history.html`에 구현한다:
   - 4가지 상태 구성
   - 각 기록 카드: 요청 시각, 공급자·모델, 스냅샷 값(`#money`), 행동 분류 배지, 상세 링크 `/guides/{id}`
   - `holding-row.html`에 "기록" 링크 추가
   - T114·T115을 통과시킨다
+
+**구현 메모 (2026-11-05)**: 계획과 달라진 점
+- T116 포트 `GuideHistoryQuery`(application.port)와 `GuideHistoryJdbcQuery`로 나눴다. 한 건 더 읽어(LIMIT 21) 다음 페이지 유무를 판단하고, 종목이 없으면 404다.
+- T117 기록 카드에는 본문 전체 대신 결론 한 줄(종합 판단 → 요약 → 원문 앞부분, 160자)을 보이고 상세는 `/guides/{id}`로 이동한다(간결화 요청 반영). "기록" 링크는 `holding-row.html`이 아니라 가이드 버튼 프래그먼트(`guide/button.html`) 옆에 두었다. 계좌가 삭제되면 "삭제된 계좌"만 표시한다(계좌 삭제 시 보유 종목도 함께 지워지므로).
+- 시각 표기는 `#money.dateTime`(KST `YYYY-MM-DD HH:mm`)을 추가해 단일 포매터로 처리했다.
 
 **Checkpoint**: 모든 사용자 스토리가 독립적으로 동작한다.
 
