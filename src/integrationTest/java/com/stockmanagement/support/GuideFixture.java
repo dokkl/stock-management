@@ -51,8 +51,16 @@ public final class GuideFixture {
         store.select(AiProvider.OPENAI);
     }
 
-    /** 토큰과 일봉(최근 3일) 대역. */
+    /** 토큰, 일봉(최근 3일, 거래량 포함), 국내 투자자별 매매동향·공매도 대역. */
     public static void stubMarket(WireMockServer server) {
+        server.stubFor(get(urlPathEqualTo("/api/v1/stocks/005930/investor-trading"))
+                .willReturn(json("{\"result\":{\"records\":["
+                        + "{\"date\":\"2026-11-04\",\"individual\":{\"netBuyVolume\":\"-1200\"},"
+                        + "\"foreigner\":{\"netBuyVolume\":\"1500\"},\"institution\":{\"netBuyVolume\":\"-300\"},"
+                        + "\"foreignerHolding\":{\"holdingRate\":\"0.5089\"}}],\"nextUntil\":null}}")));
+        server.stubFor(get(urlPathEqualTo("/api/v1/stocks/005930/short-selling"))
+                .willReturn(json("{\"result\":{\"records\":[{\"date\":\"2026-11-04\","
+                        + "\"shortSellingVolumeRate\":\"0.03120\"}],\"nextUntil\":null}}")));
         server.stubFor(post(urlEqualTo("/oauth2/token"))
                 .willReturn(json("{\"access_token\":\"tok\",\"token_type\":\"Bearer\",\"expires_in\":3600}")));
         server.stubFor(
@@ -60,7 +68,7 @@ public final class GuideFixture {
                         .willReturn(
                                 json(
                                         "{\"result\":{\"candles\":["
-                                                + "{\"timestamp\":\"2026-11-04T00:00:00+09:00\",\"closePrice\":\"70000\"},"
+                                                + "{\"timestamp\":\"2026-11-04T00:00:00+09:00\",\"closePrice\":\"70000\",\"volume\":\"9000\"},"
                                                 + "{\"timestamp\":\"2026-11-03T00:00:00+09:00\",\"closePrice\":\"69500\"},"
                                                 + "{\"timestamp\":\"2026-11-02T00:00:00+09:00\",\"closePrice\":\"69000\"}],\"nextBefore\":null}}")));
     }

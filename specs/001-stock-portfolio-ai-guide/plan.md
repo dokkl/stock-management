@@ -42,7 +42,7 @@ Playwright for Java + axe-core, JaCoCo, k6
 - 헌법 원칙 IV: 단건 조회 p95 200ms, 목록 p95 300ms, 쓰기 p95 500ms
 - 프런트엔드: LCP 2.5s, INP 200ms, 초기 JS 200KB gzip 이하
 - SC-002: 50종목 대시보드 2초 이내
-- SC-005: 가이드 95%가 30초 이내
+- SC-005: 가이드 95%가 30초 이내(웹 검색 포함 시 60초 이내)
 
 **Constraints**:
 - 시세는 최대 1분 지연을 허용한다.

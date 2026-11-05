@@ -1,5 +1,9 @@
 package com.stockmanagement.guide;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
@@ -81,8 +85,14 @@ class GuideRoutesIT extends IntegrationTestBase {
         requestGuide(g.holding)
                 .andExpect(status().isAccepted())
                 .andExpect(header().string("HX-Trigger", containsString("guide-quota-changed")))
-                .andExpect(
-                        content().string(allOf(containsString("hx-trigger=\"every 2s\""), containsString("/status"))));
+                .andExpect(content()
+                        .string(allOf(
+                                containsString("hx-trigger=\"every 2s\""),
+                                containsString("/status"),
+                                containsString("data-guide-progress"),
+                                containsString("시세·일봉 데이터 수집"),
+                                containsString("data-expected=\"30\""),
+                                not(containsString("국내외 이슈 검색")))));
         long id = g.latestGuideId();
         assertThat(g.awaitTerminal(id, WAIT)).isEqualTo("SUCCEEDED");
 
@@ -105,13 +115,77 @@ class GuideRoutesIT extends IntegrationTestBase {
     }
 
     @Test
+    void koreanStockPromptIncludesSupplyDemandAndOpenAiShowsIssueNotice() throws Exception {
+        ai.openAiGuide(AiStubs.comprehensiveJson("https://news.example.com/chip"), "gpt-5", 0);
+
+        requestGuide(g.holding).andExpect(status().isAccepted());
+        long id = g.latestGuideId();
+        assertThat(g.awaitTerminal(id, WAIT)).isEqualTo("SUCCEEDED");
+
+        WIREMOCK.verify(getRequestedFor(urlPathEqualTo("/api/v1/stocks/005930/investor-trading")));
+        WIREMOCK.verify(getRequestedFor(urlPathEqualTo("/api/v1/stocks/005930/short-selling")));
+        WIREMOCK.verify(postRequestedFor(urlPathEqualTo(AiStubs.OPENAI_PATH))
+                .withRequestBody(containing("[수급]"))
+                .withRequestBody(containing("외국인 1500 / 1500"))
+                .withRequestBody(containing("50.89%")));
+        pollStatus(id)
+                .andExpect(content()
+                        .string(allOf(
+                                containsString("class=\"guide-headline\""),
+                                containsString("자세히 보기"),
+                                containsString("수출 규제 이슈가 부담입니다"),
+                                containsString("외국인이 5일 연속 순매수했습니다."),
+                                containsString("웹 검색을 지원하지 않아"),
+                                not(containsString("news.example.com")))));
+    }
+
+    @Test
+    void claudeGuideShowsVerifiedIssuesWithSourceLinks() throws Exception {
+        credentialStore.save(
+                com.stockmanagement.aicredential.domain.AiProvider.ANTHROPIC,
+                cipher.encrypt(com.stockmanagement.aicredential.domain.ApiKey.of("sk-ant-guide-test-key-8888")),
+                clock.instant());
+        credentialStore.select(com.stockmanagement.aicredential.domain.AiProvider.ANTHROPIC);
+        ai.anthropicGuideWithSearch(
+                AiStubs.comprehensiveJson("https://news.example.com/chip", "https://made-up.example.com/x"),
+                "https://news.example.com/chip");
+
+        requestGuide(g.holding).andExpect(status().isAccepted());
+        long id = g.latestGuideId();
+        assertThat(g.awaitTerminal(id, WAIT)).isEqualTo("SUCCEEDED");
+
+        pollStatus(id)
+                .andExpect(content()
+                        .string(allOf(
+                                containsString("국내외 이슈"),
+                                containsString("악재"),
+                                containsString("이슈 1"),
+                                containsString("href=\"https://news.example.com/chip\""),
+                                containsString("rel=\"noopener noreferrer\""),
+                                containsString("Claude · claude-sonnet-5-5-20261001"),
+                                not(containsString("made-up.example.com")))));
+    }
+
+    @Test
+    void supplyDataFailureDoesNotBlockGuide() throws Exception {
+        WIREMOCK.stubFor(com.github.tomakehurst.wiremock.client.WireMock.get(
+                        urlPathEqualTo("/api/v1/stocks/005930/investor-trading"))
+                .willReturn(com.github.tomakehurst.wiremock.client.WireMock.aResponse()
+                        .withStatus(500)));
+
+        requestGuide(g.holding).andExpect(status().isAccepted());
+
+        assertThat(g.awaitTerminal(g.latestGuideId(), WAIT)).isEqualTo("SUCCEEDED");
+    }
+
+    @Test
     void pendingStatusKeepsPolling() throws Exception {
         ai.openAiGuide(AiStubs.GUIDE_JSON, "gpt-5", 1_500);
         requestGuide(g.holding).andExpect(status().isAccepted());
 
         pollStatus(g.latestGuideId())
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("every 2s")));
+                .andExpect(status().isNoContent())
+                .andExpect(content().string(""));
     }
 
     @Test
@@ -192,6 +266,29 @@ class GuideRoutesIT extends IntegrationTestBase {
         assertThat(activeCount()).isZero();
         mockMvc.perform(get("/holdings/" + g.holding + "/guide-button").with(owner()))
                 .andExpect(content().string(containsString("가이드 (남은 2회)")));
+    }
+
+    @Test
+    void truncatedResponseFailsWithRetryMessageAndKeepsQuota() throws Exception {
+        WIREMOCK.resetAll();
+        GuideFixture.stubMarket(WIREMOCK);
+        ai.openAiTruncated(AiStubs.GUIDE_JSON.substring(0, 120));
+
+        requestGuide(g.holding).andExpect(status().isAccepted());
+        long id = g.latestGuideId();
+        assertThat(g.awaitTerminal(id, WAIT)).isEqualTo("FAILED");
+
+        pollStatus(id)
+                .andExpect(content()
+                        .string(allOf(
+                                containsString("너무 길어 중간에 끊겼습니다"),
+                                containsString("차감되지 않았습니다"),
+                                not(containsString("summary")))));
+        assertThat(jdbc.sql("SELECT failure_kind FROM guide_request")
+                        .query(String.class)
+                        .single())
+                .isEqualTo("OUTPUT_TRUNCATED");
+        assertThat(activeCount()).isZero();
     }
 
     @Test

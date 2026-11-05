@@ -93,6 +93,49 @@
     });
   });
 
+  // 가이드 진행 카드: 경과 시간에 맞춰 단계·진행 막대·경과 초를 갱신한다(서버 실제 단계가 아닌 소요 시간 기준 안내).
+  function renderGuideProgress(card) {
+    if (!card.dataset.startedAt) {
+      var elapsedAtRender = Number(card.getAttribute("data-elapsed") || "0");
+      card.dataset.startedAt = String(Date.now() - elapsedAtRender * 1000);
+    }
+    var elapsed = Math.max(0, (Date.now() - Number(card.dataset.startedAt)) / 1000);
+    var expected = Number(card.getAttribute("data-expected") || "30");
+    var steps = card.querySelectorAll(".analysis-steps li");
+    var active = 0;
+    steps.forEach(function (step, index) {
+      if (elapsed >= Number(step.getAttribute("data-at") || "0")) {
+        active = index;
+      }
+    });
+    steps.forEach(function (step, index) {
+      step.classList.toggle("is-done", index < active);
+      step.classList.toggle("is-active", index === active);
+      if (index === active) {
+        step.setAttribute("aria-current", "step");
+      } else {
+        step.removeAttribute("aria-current");
+      }
+    });
+    var bar = card.querySelector(".guide-progress-bar");
+    if (bar) {
+      // 예상 시간에 가까워질수록 느려지며 95%에서 멈춘다(완료는 결과 카드가 대신한다).
+      bar.value = Math.round(95 * (1 - Math.exp(-elapsed / (expected / 2.5))));
+    }
+    var text = card.querySelector("[data-elapsed-text]");
+    if (text) {
+      text.textContent = String(Math.floor(elapsed));
+    }
+  }
+
+  function renderAllGuideProgress() {
+    document.querySelectorAll("[data-guide-progress]").forEach(renderGuideProgress);
+  }
+
+  document.addEventListener("htmx:afterSettle", renderAllGuideProgress);
+  document.addEventListener("DOMContentLoaded", renderAllGuideProgress);
+  setInterval(renderAllGuideProgress, 1000);
+
   // 종목 검색 결과 선택(키보드/마우스).
   document.addEventListener("click", function (evt) {
     var option = evt.target.closest("[data-security-id]");

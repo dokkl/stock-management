@@ -72,6 +72,74 @@ public final class AiStubs {
                         .withFixedDelay(delayMillis)));
     }
 
+    /** 종합 분석 형식 가이드 JSON. 이슈 출처는 sourceUrls 순서대로 쓴다. */
+    public static String comprehensiveJson(String... sourceUrls) {
+        StringBuilder issues = new StringBuilder();
+        for (int i = 0; i < sourceUrls.length; i++) {
+            if (i > 0) {
+                issues.append(',');
+            }
+            issues.append("{\"title\":\"이슈 ")
+                    .append(i + 1)
+                    .append("\",\"summary\":\"이슈 요약 ")
+                    .append(i + 1)
+                    .append("\",\"impact\":\"NEGATIVE\",\"sourceUrl\":\"")
+                    .append(sourceUrls[i])
+                    .append("\",\"sourceTitle\":\"뉴스 ")
+                    .append(i + 1)
+                    .append("\",\"publishedDate\":\"2026-11-04\"}");
+        }
+        return "{\"summary\":\"최근 60일 동안 완만하게 올랐습니다.\",\"diagnosis\":\"평단가보다 0.7% 낮습니다.\","
+                + "\"supplyDemand\":\"외국인이 5일 연속 순매수했습니다.\",\"issues\":[" + issues + "],"
+                + "\"overall\":\"기술적 흐름과 수급은 긍정적이지만 수출 규제 이슈가 부담입니다.\",\"action\":\"WATCH\","
+                + "\"rationale\":\"이슈 확인 후 판단하는 것이 좋습니다.\",\"risks\":[\"수출 규제\"]}";
+    }
+
+    /**
+     * Claude가 웹 검색을 한 응답: 검색 도구 호출, 검색 결과 블록(results의 URL), 설명 문장, JSON 본문 순서다.
+     */
+    public void anthropicGuideWithSearch(String json, String... resultUrls) {
+        StringBuilder results = new StringBuilder();
+        for (int i = 0; i < resultUrls.length; i++) {
+            if (i > 0) {
+                results.append(',');
+            }
+            results.append("{\"type\":\"web_search_result\",\"url\":\"")
+                    .append(resultUrls[i])
+                    .append("\",\"title\":\"검색 결과 ")
+                    .append(i + 1)
+                    .append("\",\"encrypted_content\":\"enc\",\"page_age\":\"2026-11-04\"}");
+        }
+        server.stubFor(post(urlPathEqualTo(ANTHROPIC_PATH))
+                .willReturn(json(
+                        200,
+                        "{\"id\":\"msg_1\",\"type\":\"message\",\"role\":\"assistant\","
+                                + "\"model\":\"claude-sonnet-5-5-20261001\",\"content\":["
+                                + "{\"type\":\"server_tool_use\",\"id\":\"srvtoolu_1\",\"name\":\"web_search\","
+                                + "\"input\":{\"query\":\"삼성전자 이슈\"}},"
+                                + "{\"type\":\"web_search_tool_result\",\"tool_use_id\":\"srvtoolu_1\",\"content\":["
+                                + results + "]},"
+                                + "{\"type\":\"text\",\"text\":\"검색 결과를 바탕으로 분석했습니다.\"},"
+                                + "{\"type\":\"text\",\"text\":" + quote(json) + "}],"
+                                + "\"stop_reason\":\"end_turn\",\"stop_sequence\":null,"
+                                + "\"usage\":{\"input_tokens\":10,\"output_tokens\":10,"
+                                + "\"server_tool_use\":{\"web_search_requests\":1}}}")));
+    }
+
+    /** OpenAI가 출력 한도(finish_reason=length)에서 잘린 본문을 응답한다. */
+    public void openAiTruncated(String partialText) {
+        server.stubFor(
+                post(urlPathEqualTo(OPENAI_PATH))
+                        .willReturn(
+                                json(
+                                        200,
+                                        "{\"id\":\"chatcmpl-1\",\"object\":\"chat.completion\",\"created\":1,"
+                                                + "\"model\":\"gpt-5\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\","
+                                                + "\"content\":" + quote(partialText)
+                                                + "},\"finish_reason\":\"length\"}],"
+                                                + "\"usage\":{\"prompt_tokens\":10,\"completion_tokens\":16000,\"total_tokens\":16010}}")));
+    }
+
     public static String quote(String text) {
         return "\"" + text.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n") + "\"";
     }

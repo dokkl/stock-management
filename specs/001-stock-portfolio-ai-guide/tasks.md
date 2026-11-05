@@ -529,6 +529,37 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
 
 ---
 
+## Phase 6b: 가이드 종합 분석 확장 — 수급·국내외 이슈 (2026-11-05 추가, US3 확장)
+
+**Goal**: 기술적 분석에 치우친 가이드에 수급(거래량·투자자별 매매·공매도)과 웹 검색 기반 국내외 이슈를 더해 종합 판단을 제공한다(research R13, FR-016·FR-017 확장).
+
+**Independent Test**: 국내 종목 가이드 요청 시 프롬프트에 [수급]이 들어가고, Claude 가이드는 검색 결과에 있는 출처의 이슈만 링크와 함께 보이며, OpenAI 가이드는 이슈 미지원 안내가 보인다.
+
+### Tests
+
+- [X] T113a [P] `SupplyDemand` 단위 테스트를 `UT/guide/domain/SupplyDemandTest.java`에 작성한다: 거래량 ÷ 20일 평균, 5·20일 순매수 합(잠정치 null은 0), 외국인 보유 비율 변화, 공매도 비중 평균
+- [X] T113b [P] `GuideIssue`·확장 `GuideContent` 단위 테스트를 `UT/guide/domain/GuideIssueTest.java`에 작성한다: http(s) 출처만 허용, URL 정규화, 이슈 최대 5개, 이전 형식 호환
+- [X] T113c [P] 수급 API 통합 테스트를 `IT/market/TossTradingTrendIT.java`에 작성한다(WireMock investor-trading·short-selling)
+- [X] T113d [P] `AiGenerateGuideIT`에 웹 검색 케이스를 추가한다: Claude 요청에 웹 검색 도구 포함, 검색 결과에 없는 출처 제거, 설명 뒤 JSON 추출, OpenAI 이슈 비움, 프롬프트에 [수급]
+- [X] T113e [P] `GuideRoutesIT`에 국내 종목 수급 조회·프롬프트 반영, Claude 이슈 링크 표시, OpenAI 미지원 안내, 수급 조회 실패 시 진행을 추가한다
+- [X] T113f [P] `GuideRequestE2E`에 Claude 종합 분석 시나리오(종합 판단·수급·이슈 출처 링크, axe 0건)를 추가한다
+
+### Implementation
+
+- [X] T113g `InvestorFlow`·`ShortSellingDay`(market.domain)와 `MarketDataProvider.fetchInvestorFlows`·`fetchShortSelling`, 토스증권 어댑터 구현(`STOCK_TRADING_TREND` 레이트 리미터)
+- [X] T113h `SupplyDemand` 요약과 `GuidePrompt`의 [수급] 항목, `GuideRunner`의 국내 종목 수급 조회(실패 시 제외하고 진행)
+- [X] T113i 출력 스키마 확장: `GuideContent`에 supplyDemand·issues(`GuideIssue`, `IssueImpact`)·overall, contracts/ai-guide-output.schema.json 갱신
+- [X] T113j Claude 웹 검색(`AnthropicChatOptions.webSearchTool`, 최대 5회)과 출처 검증, 여러 텍스트 블록 결합·JSON 추출, 가이드 타임아웃 `app.ai.guide-timeout`(기본 120초) 분리, 시스템 프롬프트 갱신
+- [X] T113l 가이드 버튼을 외곽선 버튼(`.btn.btn-sm.btn-guide`, 아이콘·호버·비활성 상태)으로 바꿔 텍스트 링크와 구분한다
+- [X] T113m 분석 진행 카드: 단계 목록(데이터 수집 → 수급 → 이슈 검색(Claude) → 종합 판단 → 리포트), 차트 스캔 애니메이션, 진행 막대, 경과 시간. 진행 중 폴링은 204로 카드를 유지하고, 단계는 경과 시간 기준(app.js)이며 `prefers-reduced-motion`을 존중한다
+- [X] T113n 응답 잘림 대응: 출력 한도 16000 토큰, 프롬프트 글자 수 축소, finish reason `max_tokens`/`length`로 잘림 감지 시 `OUTPUT_TRUNCATED` 실패(V8 CHECK 확장, 횟수 반환, 재요청 안내). `AiGenerateGuideIT`·`GuideRoutesIT`에 재현 테스트
+- [X] T113o 간결화: 프롬프트 항목별 1~3문장·전체 1500자, 결과 화면은 행동 가이드와 종합 판단만 먼저 보이고 나머지는 "자세히 보기"로 접는다
+- [X] T113k 결과 화면: 종합 판단·수급·국내외 이슈(호재/악재/중립, 출처 새 창 링크), OpenAI 미지원 안내, 이전 형식 기록 호환
+
+**Checkpoint**: 가이드가 기술·수급·이슈를 종합해 판단하고, 이슈는 검증된 출처와 함께 보인다.
+
+---
+
 ## Phase 7: User Story 5 - 가이드 기록 조회 (Priority: P4)
 
 **Goal**: 종목별 가이드 기록을 최신순으로, 요청 당시 스냅샷과 함께 조회한다. 보유 종목이나 계좌를 삭제해도 기록은 유지된다.

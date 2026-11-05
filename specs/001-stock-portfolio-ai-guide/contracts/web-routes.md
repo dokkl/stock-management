@@ -66,7 +66,7 @@
 | Method | Path | 설명 | 응답 |
 |---|---|---|---|
 | POST | `/holdings/{id}/guides` | 가이드 요청(슬롯 예약 + 비동기 실행) | 아래 표 |
-| GET | `/guides/{id}/status` | 진행 상태 폴링(htmx `every 2s`) | `PENDING`: 200 진행 프래그먼트(폴링 계속) / `SUCCEEDED`: 200 결과 프래그먼트 + `HX-Trigger: guide-quota-changed` / `FAILED`: 200 오류 프래그먼트(폴링 중단) |
+| GET | `/guides/{id}/status` | 진행 상태 폴링(htmx `every 2s`, 진행 카드 안의 숨은 폴러) | `PENDING`: 204 본문 없음(진행 카드와 애니메이션 유지, 폴링 계속) / `SUCCEEDED`: 200 결과 프래그먼트 + `HX-Trigger: guide-quota-changed` / `FAILED`: 200 오류 프래그먼트(폴링 중단) |
 | GET | `/guides/{id}` | 가이드 상세(결과 전체) | 200 / 404 |
 | GET | `/holdings/{id}/guide-button` | 가이드 버튼(남은 횟수·비활성 사유) 프래그먼트. `guide-quota-changed-{securityId}` 이벤트로 다시 받는다 | 200 / 404 |
 | GET | `/securities/{id}/guides?page=` | 종목별 가이드 기록, 최신순, 20건 페이지 | 200 |
@@ -75,7 +75,7 @@
 
 | 조건 | 상태 | 본문 |
 |---|---|---|
-| 슬롯 예약 성공 | 202 | 진행 중 프래그먼트(`hx-get=/guides/{gid}/status`, `hx-trigger="every 2s"`) |
+| 슬롯 예약 성공 | 202 | 분석 진행 카드(단계 목록·진행 막대·경과 시간, 숨은 폴러 `hx-get=/guides/{gid}/status` `hx-trigger="every 2s"`) |
 | 등록된 AI 키 없음 (FR-023d) | 409 | `HX-Redirect: /settings/ai` |
 | 오늘 이 종목 2회 사용 (FR-018) | 429 | 한도 안내 프래그먼트 + 초기화 시각 `내일 00:00 (KST)` |
 | 거래정지·상장폐지 종목 | 409 | 비활성 안내 |

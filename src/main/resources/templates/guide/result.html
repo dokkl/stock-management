@@ -1,7 +1,10 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <body>
-<!-- 가이드 결과(FR-017, FR-022): 요약·진단·행동과 근거·위험 요인·면책 문구, 공급자·모델. 구조화 실패 시 원문. -->
+<!--
+  가이드 결과(FR-017, FR-022): 종합 판단·행동, 주가 흐름, 수급, 국내외 이슈(출처), 보유 진단, 근거, 위험, 면책, 공급자·모델.
+  종합 분석 이전 형식의 기록은 수급·이슈·종합 판단 없이 보여 준다. 구조화 실패 시 원문.
+-->
 <article th:fragment="result" class="guide-card" th:id="'guide-' + ${guide.id}"
          th:aria-labelledby="'guide-title-' + ${guide.id}">
     <header class="guide-header">
@@ -14,16 +17,47 @@
             <span th:text="#{guide.section.action}">행동 가이드</span>:
             <strong th:text="#{'guide.action.' + ${c.action().name()}}">보유</strong>
         </p>
-        <h3 th:text="#{guide.section.summary}">주가 흐름 요약</h3>
-        <p th:text="${c.summary()}">요약</p>
-        <h3 th:text="#{guide.section.diagnosis}">보유 상황 진단</h3>
-        <p th:text="${c.diagnosis()}">진단</p>
-        <h3 th:text="#{guide.section.rationale}">근거</h3>
-        <p th:text="${c.rationale()}">근거</p>
-        <h3 th:text="#{guide.section.risks}">주요 위험 요인</h3>
-        <ul>
-            <li th:each="risk : ${c.risks()}" th:text="${risk}">위험</li>
-        </ul>
+        <!-- 핵심: 결론(종합 판단, 이전 기록은 요약)만 먼저 보여 주고 나머지는 접어 둔다 -->
+        <p class="guide-headline" th:text="${c.isComprehensive() ? c.overall() : c.summary()}">결론</p>
+        <details class="guide-details">
+            <summary th:text="#{guide.details}">자세히 보기</summary>
+            <h3 th:text="#{guide.section.summary}">주가 흐름 요약</h3>
+            <p th:text="${c.summary()}">요약</p>
+            <th:block th:if="${c.isComprehensive()}">
+                <h3 th:text="#{guide.section.supplyDemand}">수급</h3>
+                <p th:text="${c.supplyDemand() != null ? c.supplyDemand() : #messages.msg('guide.supplyDemand.none')}">수급</p>
+
+                <h3 th:text="#{guide.section.issues}">국내외 이슈</h3>
+                <p th:if="${guide.provider.name() == 'OPENAI'}" class="muted"
+                   th:text="#{guide.issues.unsupported(${guide.provider.displayName()})}">이슈 검색 미지원</p>
+                <p th:if="${guide.provider.name() != 'OPENAI' and #lists.isEmpty(c.issues())}" class="muted"
+                   th:text="#{guide.issues.none}">확인된 이슈 없음</p>
+                <ul th:unless="${#lists.isEmpty(c.issues())}" class="guide-issues">
+                    <li th:each="issue : ${c.issues()}">
+                        <p class="guide-issue-title">
+                            <span class="guide-impact" th:classappend="${issue.impact().name() == 'POSITIVE'} ? 'up' : (${issue.impact().name() == 'NEGATIVE'} ? 'down' : 'flat')"
+                                  th:text="#{'guide.impact.' + ${issue.impact().name()}}">악재</span>
+                            <strong th:text="${issue.title()}">이슈 제목</strong>
+                        </p>
+                        <p th:text="${issue.summary()}">이슈 요약</p>
+                        <p class="guide-issue-source">
+                            <a th:href="${issue.sourceUrl()}" target="_blank" rel="noopener noreferrer"
+                               th:text="${issue.sourceTitle() != null ? issue.sourceTitle() : issue.sourceUrl()}">출처</a>
+                            <span th:if="${issue.publishedDate() != null}" class="muted" th:text="'· ' + ${issue.publishedDate()}">· 2026-11-04</span>
+                            <span class="visually-hidden" th:text="#{guide.issues.newWindow}">(새 창)</span>
+                        </p>
+                    </li>
+                </ul>
+            </th:block>
+            <h3 th:text="#{guide.section.diagnosis}">보유 상황 진단</h3>
+            <p th:text="${c.diagnosis()}">진단</p>
+            <h3 th:text="#{guide.section.rationale}">근거</h3>
+            <p th:text="${c.rationale()}">근거</p>
+            <h3 th:text="#{guide.section.risks}">주요 위험 요인</h3>
+            <ul>
+                <li th:each="risk : ${c.risks()}" th:text="${risk}">위험</li>
+            </ul>
+        </details>
     </th:block>
     <th:block th:if="${guide.content == null}">
         <p class="muted" th:text="#{guide.rawNotice}">구조화되지 않은 원문입니다.</p>

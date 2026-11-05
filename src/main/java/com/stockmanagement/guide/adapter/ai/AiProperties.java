@@ -10,11 +10,16 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  *
  * @param models 공급자별 기본 모델
  * @param baseUrls 공급자별 API 주소. 없으면 공식 주소(테스트에서는 WireMock 주소로 바꾼다)
+ * @param guideTimeout 가이드 생성 타임아웃. 웹 검색이 들어가 키 검증(timeout)보다 길다. 없으면 120초
  */
 @ConfigurationProperties("app.ai")
-public record AiProperties(Duration timeout, Map<AiProvider, String> models, Map<AiProvider, String> baseUrls) {
+public record AiProperties(
+        Duration timeout, Map<AiProvider, String> models, Map<AiProvider, String> baseUrls, Duration guideTimeout) {
+
+    static final Duration DEFAULT_GUIDE_TIMEOUT = Duration.ofMinutes(2);
 
     public AiProperties {
+        guideTimeout = guideTimeout == null ? DEFAULT_GUIDE_TIMEOUT : guideTimeout;
         models = models == null ? Map.of() : Map.copyOf(models);
         baseUrls = baseUrls == null ? Map.of() : Map.copyOf(baseUrls);
     }

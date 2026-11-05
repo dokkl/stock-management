@@ -7,5 +7,7 @@ public enum FailureKind {
     /** 시간 초과·서버 오류·처리 중단: 잠시 후 다시 시도할 수 있다. */
     TRANSIENT_ERROR,
     /** 실행 시점에 종목이 거래정지·상장폐지 상태였다. */
-    INVALID_STATE
+    INVALID_STATE,
+    /** AI 응답이 출력 길이 한도에서 잘려 결과를 읽을 수 없었다. 다시 요청하면 대개 해결된다. */
+    OUTPUT_TRUNCATED
 }

@@ -93,6 +93,37 @@ class GuidePromptBuilderTest {
     }
 
     @Test
+    void includesSupplyDemandSection() {
+        java.time.LocalDate day = java.time.LocalDate.of(2026, 11, 4);
+        SupplyDemand supply = SupplyDemand.of(
+                List.of(new com.stockmanagement.market.domain.DailyCandle(
+                        day, null, null, null, BigDecimal.TEN, new BigDecimal("1000"))),
+                List.of(new com.stockmanagement.market.domain.InvestorFlow(
+                        day, new BigDecimal("500"), new BigDecimal("-200"), null, new BigDecimal("0.5089"))),
+                List.of(new com.stockmanagement.market.domain.ShortSellingDay(day, new BigDecimal("0.0312"))));
+
+        String message = GuidePromptBuilder.build(
+                        SAMSUNG,
+                        new BigDecimal("160"),
+                        new BigDecimal("159"),
+                        closesNewestFirst(),
+                        supply,
+                        new BigDecimal("150"),
+                        BigDecimal.TEN)
+                .userMessage();
+
+        assertThat(message)
+                .contains(
+                        "[수급]",
+                        "최근 거래량: 1000주",
+                        "외국인 500 / 500",
+                        "기관 -200 / -200",
+                        "외국인 보유 비율: 50.89%",
+                        "공매도 거래량 비중: 최근 3.12%");
+        assertThat(build(closesNewestFirst()).userMessage()).contains("수급 데이터 없음");
+    }
+
+    @Test
     void neverIncludesAccountName() {
         GuidePrompt prompt = build(closesNewestFirst());
         assertThat(prompt.userMessage()).doesNotContain("계좌").doesNotContain("키움");

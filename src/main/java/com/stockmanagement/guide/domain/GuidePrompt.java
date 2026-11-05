@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
  * @param closes 최근 종가(오래된 것부터)
  * @param volatility 일간 수익률의 표본 표준편차(비율)
  * @param returnRate 평가 수익률(비율)
+ * @param supplyDemand 수급 요약. 없으면 null
  */
 public record GuidePrompt(
         Market market,
@@ -31,7 +32,8 @@ public record GuidePrompt(
         BigDecimal avgPrice,
         BigDecimal quantity,
         BigDecimal unrealizedPnl,
-        BigDecimal returnRate) {
+        BigDecimal returnRate,
+        SupplyDemand supplyDemand) {
 
     public GuidePrompt {
         closes = List.copyOf(closes);
@@ -57,7 +59,63 @@ public record GuidePrompt(
                 "",
                 "[내 보유 상황]",
                 "- 평단가: " + c + plain(avgPrice) + ", 수량: " + plain(quantity) + "주",
-                "- 평가손익: " + c + plain(unrealizedPnl) + ", 수익률: " + percent(returnRate));
+                "- 평가손익: " + c + plain(unrealizedPnl) + ", 수익률: " + percent(returnRate),
+                supplyDemandSection());
+    }
+
+    /** [수급] 항목. 거래량은 국내·미국 모두, 투자자별 순매수·공매도는 국내 종목만 있다. */
+    private String supplyDemandSection() {
+        if (supplyDemand == null || supplyDemand.isEmpty()) {
+            return "\n[수급]\n- 수급 데이터 없음";
+        }
+        StringBuilder text = new StringBuilder("\n[수급]");
+        SupplyDemand s = supplyDemand;
+        if (s.latestVolume() != null) {
+            text.append("\n- 최근 거래량: ")
+                    .append(plain(s.latestVolume()))
+                    .append("주, 20일 평균: ")
+                    .append(plain(s.averageVolume20().setScale(0, RoundingMode.HALF_UP)))
+                    .append("주");
+            if (s.volumeRatio() != null) {
+                text.append(" (평균 대비 ")
+                        .append(plain(s.volumeRatio().setScale(2, RoundingMode.HALF_UP)))
+                        .append("배)");
+            }
+        }
+        if (s.flows() != null) {
+            SupplyDemand.Flows f = s.flows();
+            text.append("\n- 투자자별 순매수(주, 최근 5일 / 20일 합계): 외국인 ")
+                    .append(plain(f.foreign5()))
+                    .append(" / ")
+                    .append(plain(f.foreign20()))
+                    .append(", 기관 ")
+                    .append(plain(f.institution5()))
+                    .append(" / ")
+                    .append(plain(f.institution20()))
+                    .append(", 개인 ")
+                    .append(plain(f.individual5()))
+                    .append(" / ")
+                    .append(plain(f.individual20()));
+            if (f.foreignHoldingRate() != null) {
+                text.append("\n- 외국인 보유 비율: ").append(percent(f.foreignHoldingRate()));
+                if (f.foreignHoldingChange() != null) {
+                    text.append(" (기간 중 변화 ")
+                            .append(signedPercent(f.foreignHoldingChange()))
+                            .append(")");
+                }
+            }
+        }
+        if (s.shortSellingRate() != null) {
+            text.append("\n- 공매도 거래량 비중: 최근 ").append(percent(s.shortSellingRate()));
+            if (s.shortSellingAverage20() != null) {
+                text.append(", 20일 평균 ").append(percent(s.shortSellingAverage20()));
+            }
+        }
+        return text.toString();
+    }
+
+    private static String signedPercent(BigDecimal ratio) {
+        return (ratio.signum() > 0 ? "+" : "") + percent(ratio);
     }
 
     private static String plain(BigDecimal value) {
