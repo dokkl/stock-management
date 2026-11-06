@@ -71,6 +71,10 @@
 
 ## 참고
 
+- 배포: `infra/`(Terraform, AWS Lightsail 계정 378040395734 서울) + `.github/workflows/deploy.yml`(main CI 통과 후 자동).
+  앱 환경 변수(비밀값)는 SSM `/stock-management/prod/*`에 두고 배포 때 주입한다. 새 환경 변수를 추가하면
+  `infra/terraform/parameters.tf`에도 추가한다. 운영 DB는 Lightsail 관리형 PostgreSQL 18.
+
 - 성능 예산: `perf/seed.sql`(기준 데이터셋) + `perf/budget.js`(k6) + `perf/baseline.json`(기준선, 20% 회귀 시 실패).
   k6는 `noCookiesReset: true`가 없으면 반복마다 세션이 사라진다. 프런트엔드 예산은 `WebVitalsE2E`.
 - 제품 한도: 계좌 최대 2개(`app.portfolio.max-accounts`), 보유 종목 최대 20개(`app.portfolio.max-holdings`).

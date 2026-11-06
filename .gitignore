@@ -20,3 +20,12 @@ Thumbs.db
 *.swp
 *.tmp
 *.log
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+terraform.tfvars
+!terraform.tfvars.example
