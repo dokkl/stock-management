@@ -1,0 +1,140 @@
+name: Deploy
+
+# main에 머지되어 CI가 통과하면 Lightsail 컨테이너 서비스에 배포한다. 수동 실행(재배포)도 가능하다.
+# 준비(infra/README.md): terraform apply, SSM 파라미터 값 입력, 저장소 Variables(AWS_DEPLOY_ROLE_ARN, APP_DOMAIN),
+# GitHub Environment "production"(배포 브랜치 main만 허용).
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-northeast-2
+  SERVICE_NAME: stock-management
+  PARAMETER_PATH: /stock-management/prod
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment:
+      name: production
+      url: https://${{ vars.APP_DOMAIN }}
+    env:
+      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # CI가 검증한 바로 그 커밋을 배포한다
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install lightsailctl (push-container-image 플러그인)
+        run: |
+          sudo curl -fsSL "https://s3.us-west-2.amazonaws.com/lightsailctl/latest/linux-amd64/lightsailctl" \
+            -o /usr/local/bin/lightsailctl
+          sudo chmod +x /usr/local/bin/lightsailctl
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: stock-management:${{ env.DEPLOY_SHA }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Push image to Lightsail
+        id: push
+        run: |
+          tag="stock-management:$DEPLOY_SHA"
+          out=$(aws lightsail push-container-image --region "$AWS_REGION" \
+            --service-name "$SERVICE_NAME" --label app --image "$tag")
+          echo "$out"
+          image=$(grep -o '":[^"]*"' <<<"$out" | tail -1 | tr -d '"')
+          if [ -z "$image" ]; then
+            echo "푸시한 이미지 이름을 찾지 못했습니다" >&2
+            exit 1
+          fi
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+
+      - name: Render deployment
+        env:
+          IMAGE: ${{ steps.push.outputs.image }}
+        run: infra/scripts/render-deployment.sh "$SERVICE_NAME" "$IMAGE" "$PARAMETER_PATH" "$RUNNER_TEMP/deployment.json"
+
+      - name: Create deployment
+        id: deploy
+        run: |
+          version=$(aws lightsail create-container-service-deployment --region "$AWS_REGION" \
+            --cli-input-json "file://$RUNNER_TEMP/deployment.json" \
+            --query 'containerService.nextDeployment.version' --output text)
+          rm -f "$RUNNER_TEMP/deployment.json"
+          echo "deployment version: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for deployment
+        env:
+          DEPLOYMENT_VERSION: ${{ steps.deploy.outputs.version }}
+        run: |
+          version="$DEPLOYMENT_VERSION"
+          for _ in $(seq 1 60); do
+            state=$(aws lightsail get-container-service-deployments --region "$AWS_REGION" \
+              --service-name "$SERVICE_NAME" \
+              --query "deployments[?version==\`$version\`].state | [0]" --output text)
+            echo "deployment $version: $state"
+            case "$state" in
+              ACTIVE) exit 0 ;;
+              FAILED|INACTIVE)
+                aws lightsail get-container-log --region "$AWS_REGION" --service-name "$SERVICE_NAME" \
+                  --container-name app --query 'logEvents[-50:].message' --output text || true
+                exit 1 ;;
+            esac
+            sleep 20
+          done
+          echo "20분 안에 배포가 끝나지 않았습니다" >&2
+          exit 1
+
+      - name: Smoke test
+        run: curl -fsS --retry 10 --retry-delay 10 --retry-all-errors "https://$APP_DOMAIN/actuator/health"
+
+      - name: Check egress IP (토스 API 허용 IP)
+        env:
+          TOSS_ALLOWED_IP: ${{ vars.TOSS_ALLOWED_IP }}
+        run: |
+          # 컨테이너 서비스의 나가는 IP는 고정되지 않는다. 바뀌면 토스 API가 403(IP address not allowed)을 준다.
+          for _ in $(seq 1 12); do
+            ip=$(aws lightsail get-container-log --region "$AWS_REGION" --service-name "$SERVICE_NAME" \
+              --container-name egress-ip --query 'logEvents[].message' --output text \
+              | tr '\t' '\n' | grep -o 'egress-ip=[0-9.]*' | tail -1 | cut -d= -f2)
+            [ -n "$ip" ] && break
+            sleep 10
+          done
+          echo "egress IP: ${ip:-unknown}"
+          if [ -z "$ip" ]; then
+            echo "::warning::나가는 IP를 확인하지 못했습니다(egress-ip 컨테이너 로그 없음)"
+          elif [ "$ip" != "$TOSS_ALLOWED_IP" ]; then
+            echo "::warning::나가는 IP가 ${ip}로 바뀌었습니다. 토스 개발자 콘솔에 등록하고 저장소 변수 TOSS_ALLOWED_IP를 갱신하세요."
+          fi

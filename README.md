@@ -99,6 +99,12 @@ p95 예산은 단건 200ms, 목록·검색 300ms, 쓰기 500ms이며 `perf/basel
 - 메서드 순환 복잡도 10 이하, 길이 50줄 이하
 - 라인 커버리지 전체 80% 이상, `*.domain` 패키지 라인 90%·분기 85% 이상
 
+## 배포
+
+AWS Lightsail(서울)에 Terraform으로 인프라를 만들고, main에 머지되면 GitHub Actions가 CI 통과 후 자동 배포합니다.
+컨테이너 서비스 + 관리형 PostgreSQL + Route 53 도메인 구성이며, 처음 설정 순서는 [`infra/README.md`](infra/README.md)에
+있습니다.
+
 ## 프로젝트 구조
 
 ```text

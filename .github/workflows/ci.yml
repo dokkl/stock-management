@@ -32,6 +32,22 @@ jobs:
           name: reports
           path: build/reports
 
+  infra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.5"
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive infra
+      - name: Terraform validate
+        run: |
+          for dir in infra/bootstrap infra/terraform; do
+            terraform -chdir="$dir" init -backend=false -input=false
+            terraform -chdir="$dir" validate
+          done
+
   secrets:
     runs-on: ubuntu-latest
     steps:
