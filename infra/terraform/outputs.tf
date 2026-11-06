@@ -33,3 +33,8 @@ output "toss_allowed_ip" {
   description = "토스 개발자 콘솔에 등록할 허용 IP(고정). 저장소 변수 TOSS_ALLOWED_IP에도 넣는다"
   value       = aws_lightsail_static_ip.egress_proxy.ip_address
 }
+
+output "db_endpoint" {
+  description = "DB 주소(Lightsail 내부에서만 접속). 운영자는 infra/scripts/db-tunnel.sh로 SSH 터널을 연다"
+  value       = "${aws_lightsail_database.main.master_endpoint_address}:${aws_lightsail_database.main.master_endpoint_port}"
+}

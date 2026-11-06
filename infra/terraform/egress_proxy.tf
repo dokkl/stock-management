@@ -58,7 +58,8 @@ resource "aws_lightsail_static_ip_attachment" "egress_proxy" {
   }
 }
 
-# 기본으로 열리는 22·80을 닫고 프록시 포트만 Lightsail 내부에 연다
+# 기본으로 열리는 22·80을 닫고 프록시 포트만 Lightsail 내부에 연다.
+# admin_ssh_cidrs를 주면 그 IP에만 SSH를 연다(운영자의 DB SSH 터널용).
 resource "aws_lightsail_instance_public_ports" "egress_proxy" {
   instance_name = aws_lightsail_instance.egress_proxy.name
 
@@ -67,6 +68,16 @@ resource "aws_lightsail_instance_public_ports" "egress_proxy" {
     from_port = local.proxy_port
     to_port   = local.proxy_port
     cidrs     = local.lightsail_vpc_cidrs
+  }
+
+  dynamic "port_info" {
+    for_each = length(var.admin_ssh_cidrs) > 0 ? [1] : []
+    content {
+      protocol  = "tcp"
+      from_port = 22
+      to_port   = 22
+      cidrs     = var.admin_ssh_cidrs
+    }
   }
 
   # 새 인스턴스는 기본 포트(22·80)가 열려 있으므로 규칙을 다시 적용한다

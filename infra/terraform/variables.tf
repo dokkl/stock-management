@@ -83,3 +83,9 @@ variable "egress_proxy_bundle_id" {
   type        = string
   default     = "nano_3_0"
 }
+
+variable "admin_ssh_cidrs" {
+  description = "프록시 인스턴스 SSH(22)를 열 운영자 IP(CIDR). DB SSH 터널(infra/scripts/db-tunnel.sh)용. 비우면 닫힌다."
+  type        = list(string)
+  default     = []
+}

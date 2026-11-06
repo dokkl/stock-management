@@ -112,6 +112,29 @@ terraform output -raw toss_allowed_ip   # 이 IP를 토스 개발자 콘솔에 �
 
 main에 머지하면 CI 통과 후 자동 배포된다. 지금 바로 하려면 Actions → Deploy → Run workflow.
 
+## 운영 DB 접속 (맥북)
+
+DB는 공개 모드가 꺼져 있어 Lightsail 안에서만 접속된다. 운영자는 프록시 인스턴스를 경유하는 SSH 터널로 접속한다.
+
+1. `terraform.tfvars`의 `admin_ssh_cidrs`에 내 IP를 넣고 apply(그 IP에만 SSH가 열린다). 내 IP: `curl https://checkip.amazonaws.com`
+2. 터널 열기(Ctrl+C로 닫음):
+
+   ```bash
+   AWS_PROFILE=starter infra/scripts/db-tunnel.sh        # localhost:15432 → 운영 DB
+   ```
+
+3. DB 클라이언트(TablePlus, DBeaver 등): host `localhost`, port `15432`, database `stock`, user `stock`, SSL `require`.
+   비밀번호:
+
+   ```bash
+   AWS_PROFILE=starter aws ssm get-parameter --region ap-northeast-2 \
+     --name /stock-management/prod/SPRING_DATASOURCE_PASSWORD --with-decryption --query Parameter.Value --output text
+   ```
+
+- SSH 키는 Lightsail이 발급하는 임시 인증서를 쓰고 터널이 끝나면 지운다(오래 남는 키 없음).
+- 쓰지 않을 때는 `admin_ssh_cidrs = []`로 apply해 SSH를 닫는다. IP가 바뀌면(다른 네트워크) 다시 넣는다.
+- 운영 데이터다. 조회 위주로 쓰고, 변경은 마이그레이션(Flyway)으로 한다.
+
 ## 운영 메모
 
 - 세션은 앱 메모리에 있다. 배포할 때마다(새 컨테이너) 사용자는 다시 로그인해야 하고, 노드를 2개 이상으로 늘리면 세션이 맞지 않는다.
