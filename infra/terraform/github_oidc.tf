@@ -27,11 +27,15 @@ data "aws_iam_policy_document" "deploy_trust" {
       variable = "token.actions.githubusercontent.com:aud"
       values   = ["sts.amazonaws.com"]
     }
-    # production 환경으로 실행한 잡만(환경 보호 규칙으로 main 브랜치만 허용한다)
+    # production 환경으로 실행한 잡만(환경 보호 규칙으로 main 브랜치만 허용한다).
+    # GitHub의 새 형식(immutable subject)은 owner@id/repo@id를 쓰므로 두 형식을 모두 허용한다.
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository}:environment:${var.github_environment}"]
+      values = [
+        "repo:${var.github_repository}:environment:${var.github_environment}",
+        "repo:${var.github_repository_immutable}:environment:${var.github_environment}",
+      ]
     }
   }
 }
