@@ -77,3 +77,9 @@ variable "create_github_oidc_provider" {
   type        = bool
   default     = true
 }
+
+variable "egress_proxy_bundle_id" {
+  description = "토스 전용 고정 IP 프록시 인스턴스 크기(nano_3_0: 월 $5, 고정 IPv4 포함)"
+  type        = string
+  default     = "nano_3_0"
+}

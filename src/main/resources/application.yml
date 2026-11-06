@@ -93,5 +93,7 @@ app:
     client-id: ${TOSS_CLIENT_ID:}
     client-secret: ${TOSS_CLIENT_SECRET:}
     timeout: 10s
+    # 운영: 토스 허용 IP가 고정되도록 고정 IP 프록시를 거친다(infra/terraform/egress_proxy.tf). 비어 있으면 직접 호출
+    proxy-url: ${TOSS_PROXY_URL:}
   market:
     master-sync-on-startup: true

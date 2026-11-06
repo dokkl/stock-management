@@ -49,12 +49,6 @@ jq -n \
               TZ: "Asia/Seoul"
             }
         )
-      },
-      # 나가는(egress) IP 확인용. 토스 API는 등록한 IP만 허용하는데 컨테이너 서비스의 IP는 고정되지 않으므로,
-      # 배포마다 로그(egress-ip=...)로 남겨 바뀌었는지 확인한다.
-      "egress-ip": {
-        image: "curlimages/curl:8.11.1",
-        command: ["sh", "-c", "while true; do echo \"egress-ip=$(curl -fsS https://checkip.amazonaws.com)\"; sleep 600; done"]
       }
     },
     publicEndpoint: {

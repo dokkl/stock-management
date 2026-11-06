@@ -15,7 +15,7 @@ resource "aws_lightsail_database" "main" {
   publicly_accessible          = false
   backup_retention_enabled     = true
   preferred_backup_window      = "18:00-18:30"         # KST 03:00
-  preferred_maintenance_window = "Sun:19:00-Sun:19:30" # KST 월 04:00
+  preferred_maintenance_window = "sun:19:00-sun:19:30" # KST 월 04:00
   final_snapshot_name          = "${var.name}-db-final"
   skip_final_snapshot          = false
 

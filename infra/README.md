@@ -97,16 +97,16 @@ DB 접속 정보(`SPRING_DATASOURCE_*`)는 Terraform이 넣는다. 값을 바꾼
 ### 7. 토스 API 허용 IP
 
 토스증권 Open API는 등록한 IP에서만 호출을 받는다(아니면 `403 IP address not allowed`). 컨테이너 서비스의 나가는 IP는
-배포에 붙은 `egress-ip` 보조 컨테이너가 로그로 남긴다:
+배포마다 바뀌므로, 토스 호출만 고정 IP 프록시(`egress_proxy.tf`: Lightsail nano 인스턴스 + 고정 IP + squid)로 보낸다.
+앱은 SSM의 `TOSS_PROXY_URL`(프록시 사설 IP:3128)을 쓴다.
 
 ```bash
-aws lightsail get-container-log --service-name stock-management --container-name egress-ip \
-  --query 'logEvents[].message' --output text | tr '\t' '\n' | grep egress-ip | tail -1
+terraform output -raw toss_allowed_ip   # 이 IP를 토스 개발자 콘솔에 등록하고 저장소 변수 TOSS_ALLOWED_IP에도 넣는다
 ```
 
-이 IP를 토스 개발자 콘솔에 등록하고 저장소 변수 `TOSS_ALLOWED_IP`에 넣는다. **컨테이너 서비스의 IP는 고정되지 않아**
-재배포·재시작 때 바뀔 수 있다. Deploy 워크플로가 배포마다 비교해 바뀌면 경고를 띄운다. 자주 바뀌면 고정 IP 프록시
-(작은 Lightsail 인스턴스 + 고정 IP)로 토스 호출만 내보내는 방식으로 바꾼다.
+- 프록시는 `openapi.tossinvest.com:443`만, Lightsail 사설 대역에서 오는 요청만 받는다. SSH 포트는 닫혀 있다.
+- 인스턴스를 다시 만들어도 고정 IP는 그대로 붙으므로 토스 등록은 한 번이면 된다.
+- Deploy 워크플로는 배포 직후 로그에서 토스 거부(403)·동기화 실패를 찾아 경고한다.
 
 ### 8. 첫 배포
 
