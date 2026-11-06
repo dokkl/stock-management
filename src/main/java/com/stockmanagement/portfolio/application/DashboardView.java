@@ -29,6 +29,7 @@ public record DashboardView(List<AccountView> accounts) {
      * @param quote 저장된 시세. 없으면 null
      * @param quoteStatus 조회 시점 기준 시세 상태
      * @param guidesUsedToday 오늘(KST) 이 종목의 실패하지 않은 가이드 요청 수(계좌 합산, FR-018)
+     * @param pendingGuideId 이 종목에 진행 중인 가이드 요청. 없으면 null
      */
     public record HoldingView(
             long id,
@@ -43,7 +44,12 @@ public record DashboardView(List<AccountView> accounts) {
             BigDecimal quantity,
             Quote quote,
             QuoteStatus quoteStatus,
-            int guidesUsedToday) {
+            int guidesUsedToday,
+            Long pendingGuideId) {
+
+        public boolean guidePending() {
+            return pendingGuideId != null;
+        }
 
         public GuideQuota guideQuota() {
             return new GuideQuota(guidesUsedToday);

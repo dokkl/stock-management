@@ -136,6 +136,99 @@
   document.addEventListener("DOMContentLoaded", renderAllGuideProgress);
   setInterval(renderAllGuideProgress, 1000);
 
+  // AI 가이드 서랍 패널: 가이드 응답이 #guide-panel에 들어오면 연다. 닫으면 포커스를 연 버튼으로 돌려준다.
+  var drawerOpener = null;
+  var drawerOpenerId = null;
+
+  /** 연 버튼으로 포커스를 돌려준다. 버튼이 다시 그려졌으면(한도 갱신) 같은 가이드 버튼 묶음 id로 새 버튼을 찾는다. */
+  function restoreDrawerFocus() {
+    var target = drawerOpener;
+    if (!target || !document.body.contains(target)) {
+      var wrapper = drawerOpenerId ? document.getElementById(drawerOpenerId) : null;
+      target = wrapper ? wrapper.querySelector("button") : null;
+    }
+    if (target) {
+      target.focus();
+    }
+  }
+
+  function guideDrawer() {
+    return document.getElementById("guide-drawer");
+  }
+
+  function openGuideDrawer(opener) {
+    var drawer = guideDrawer();
+    if (!drawer) {
+      return;
+    }
+    if (opener) {
+      drawerOpener = opener;
+      var wrapper = opener.closest("[id^='guide-btn-']");
+      drawerOpenerId = wrapper ? wrapper.id : null;
+    }
+    if (!drawer.open) {
+      drawer.showModal();
+    }
+  }
+
+  document.addEventListener("htmx:afterSwap", function (evt) {
+    if (evt.detail.target && evt.detail.target.id === "guide-panel" && evt.detail.requestConfig) {
+      var elt = evt.detail.requestConfig.elt;
+      // 패널 안의 폴링 교체는 열려 있을 때만 의미가 있으므로, 사용자가 요청한 경우에만 연다.
+      if (elt && !elt.closest("#guide-panel")) {
+        openGuideDrawer(elt.closest("button") || elt);
+      }
+    }
+  });
+
+  document.addEventListener("click", function (evt) {
+    var drawer = guideDrawer();
+    if (!drawer) {
+      return;
+    }
+    if (evt.target.closest("[data-close-drawer]") || evt.target === drawer) {
+      drawer.close();
+    }
+  });
+
+  document.addEventListener(
+    "close",
+    function (evt) {
+      if (evt.target.id === "guide-drawer") {
+        restoreDrawerFocus();
+      }
+    },
+    true
+  );
+
+  // 패널이 닫혀 있을 때 가이드가 끝나면 토스트로 알리고 "보기"로 다시 연다(guide-ready는 HX-Trigger 이벤트).
+  document.addEventListener("guide-ready", onGuideReady);
+
+  function onGuideReady(evt) {
+    var drawer = guideDrawer();
+    var template = document.getElementById("guide-ready-toast");
+    var region = document.getElementById("toast-region");
+    if (!drawer || drawer.open || !template || !region) {
+      return;
+    }
+    var detail = evt.detail || {};
+    var source = document.querySelector('[data-security-id="' + detail.securityId + '"]');
+    var toast = template.content.firstElementChild.cloneNode(true);
+    toast.querySelector("[data-guide-name]").textContent = source ? source.getAttribute("data-security-name") : "";
+    toast.querySelector(detail.ok ? "[data-guide-failed]" : "[data-guide-ok]").remove();
+    toast.querySelector("[data-guide-view]").addEventListener("click", function () {
+      toast.remove();
+      var opener = source ? source.querySelector("button") : null;
+      htmx.ajax("GET", "/guides/" + detail.id + "/card", { target: "#guide-panel", swap: "innerHTML" }).then(function () {
+        openGuideDrawer(opener);
+      });
+    });
+    region.appendChild(toast);
+    setTimeout(function () {
+      toast.remove();
+    }, 15000);
+  }
+
   // 종목 검색 결과 선택(키보드/마우스).
   document.addEventListener("click", function (evt) {
     var option = evt.target.closest("[data-security-id]");

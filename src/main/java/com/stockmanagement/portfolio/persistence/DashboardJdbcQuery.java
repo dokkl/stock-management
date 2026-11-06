@@ -37,7 +37,7 @@ class DashboardJdbcQuery implements DashboardQuery {
                    h.id AS holding_id, h.avg_price, h.quantity,
                    s.id AS security_id, s.exchange, s.symbol, s.name_ko, s.name_en, s.currency, s.trading_status,
                    q.price, q.prev_close, q.session_date, q.market_state, q.as_of, q.fetched_at,
-                   coalesce(gq.used, 0) AS guides_used
+                   coalesce(gq.used, 0) AS guides_used, gp.pending_id
             FROM account a
             LEFT JOIN holding h ON h.account_id = a.id
             LEFT JOIN security s ON s.id = h.security_id
@@ -45,6 +45,9 @@ class DashboardJdbcQuery implements DashboardQuery {
             LEFT JOIN (SELECT security_id, count(*) AS used FROM guide_request
                        WHERE user_id = :userId AND usage_date = :today AND status <> 'FAILED' GROUP BY security_id) gq
                    ON gq.security_id = s.id
+            LEFT JOIN (SELECT security_id, max(id) AS pending_id FROM guide_request
+                       WHERE user_id = :userId AND status = 'PENDING' GROUP BY security_id) gp
+                   ON gp.security_id = s.id
             WHERE a.deleted_at IS NULL AND a.user_id = :userId
             """;
     private static final String ORDER =
@@ -139,7 +142,13 @@ class DashboardJdbcQuery implements DashboardQuery {
                 rs.getBigDecimal("quantity"),
                 quote,
                 QuoteStatus.of(quote, now, staleAfter),
-                rs.getInt("guides_used"));
+                rs.getInt("guides_used"),
+                pendingGuideId(rs));
+    }
+
+    private static Long pendingGuideId(ResultSet rs) throws SQLException {
+        long id = rs.getLong("pending_id");
+        return rs.wasNull() ? null : id;
     }
 
     private record Row(long accountId, String accountName, HoldingView holding) {}

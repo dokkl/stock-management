@@ -9,7 +9,7 @@
 
 <!-- 현재가 + 전일 대비 + 시세 상태 -->
 <td th:fragment="price(h, oob)" th:id="'quote-' + ${h.id}" class="quote-cell"
-    th:attr="hx-swap-oob=${oob ? 'true' : null}">
+    th:attr="hx-swap-oob=${oob ? 'true' : null}, data-label=#{portfolio.col.price}">
     <th:block th:if="${h.hasQuote()}" th:with="q=${h.quote}, dir=${q.direction().name()}">
         <span class="price" th:text="${#money.price(q.price, h.currency)}">₩71,000</span>
         <span th:class="'change ' + ${#strings.toLowerCase(dir)}">
@@ -29,7 +29,7 @@
 
 <!-- 평가손익 · 수익률 -->
 <td th:fragment="pnl(h, oob)" th:id="'pnl-' + ${h.id}" class="pnl-cell"
-    th:attr="hx-swap-oob=${oob ? 'true' : null}">
+    th:attr="hx-swap-oob=${oob ? 'true' : null}, data-label=#{portfolio.col.pnl}">
     <th:block th:if="${h.hasQuote()}" th:with="v=${h.valuation()}, dir=${v.direction().name()}">
         <span th:class="${#strings.toLowerCase(dir)}">
             <span class="visually-hidden" th:text="#{'portfolio.pnl.' + ${dir}}">손실</span>
