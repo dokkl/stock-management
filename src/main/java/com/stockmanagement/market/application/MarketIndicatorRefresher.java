@@ -82,7 +82,7 @@ public class MarketIndicatorRefresher {
                                 existing.get(index),
                                 sessionDate,
                                 () -> domestic.previousIndexClose(index, sessionDate)),
-                        reading.asOf(),
+                        reading.asOf() != null ? reading.asOf() : fallbackAsOf(calendar.get(), now),
                         sessionDate,
                         now)));
         LocalDate today = KstDate.today(clock);
@@ -117,6 +117,13 @@ public class MarketIndicatorRefresher {
                             o.date(),
                             now)));
         }
+    }
+
+    /** 기준 시각을 받지 못했을 때(장 마감 후 토스는 null을 준다): 마감 뒤에는 정규장 종료 시각, 그 밖에는 받은 시각. */
+    private static Instant fallbackAsOf(MarketCalendar calendar, Instant now) {
+        return calendar.state(now) == MarketState.CLOSED && calendar.regularClose() != null
+                ? calendar.regularClose()
+                : now;
     }
 
     /** 장중이면 매번, 장 외에는 closedInterval이 지났을 때만. */

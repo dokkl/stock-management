@@ -34,19 +34,29 @@ class TossIndicatorSourceIT extends IntegrationTestBase {
     }
 
     @Test
-    void currentIndicesSkipsMissingTimestamp() {
+    void currentIndicesKeepNullTimestampAfterClose() {
+        // 장 마감 후 토스는 timestamp를 null로 주지만 lastPrice(종가)는 유효하다
         WIREMOCK.stubFor(get(urlPathEqualTo("/api/v1/market-indicators/prices"))
                 .withQueryParam("symbols", equalTo("KOSPI,KOSDAQ"))
                 .willReturn(json("""
                         {"result":[
                           {"symbol":"KOSPI","timestamp":"2026-11-06T13:20:00+09:00","lastPrice":"2812.45"},
-                          {"symbol":"KOSDAQ","timestamp":null,"lastPrice":"0"}]}""")));
+                          {"symbol":"KOSDAQ","timestamp":null,"lastPrice":"644.27"}]}""")));
 
         Map<MarketIndicator, IndicatorReading> indices = source.currentIndices();
 
-        assertThat(indices).containsOnlyKeys(MarketIndicator.KOSPI);
-        assertThat(indices.get(MarketIndicator.KOSPI).value()).isEqualByComparingTo("2812.45");
+        assertThat(indices).containsOnlyKeys(MarketIndicator.KOSPI, MarketIndicator.KOSDAQ);
         assertThat(indices.get(MarketIndicator.KOSPI).asOf()).isEqualTo(Instant.parse("2026-11-06T04:20:00Z"));
+        assertThat(indices.get(MarketIndicator.KOSDAQ).value()).isEqualByComparingTo("644.27");
+        assertThat(indices.get(MarketIndicator.KOSDAQ).asOf()).as("기준 시각 미제공").isNull();
+    }
+
+    @Test
+    void nonPositivePriceIsSkipped() {
+        WIREMOCK.stubFor(get(urlPathEqualTo("/api/v1/market-indicators/prices"))
+                .willReturn(json("{\"result\":[{\"symbol\":\"KOSPI\",\"timestamp\":null,\"lastPrice\":\"0\"}]}")));
+
+        assertThat(source.currentIndices()).isEmpty();
     }
 
     @Test

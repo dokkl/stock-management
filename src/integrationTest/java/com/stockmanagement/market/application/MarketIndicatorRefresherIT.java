@@ -127,6 +127,24 @@ class MarketIndicatorRefresherIT extends IntegrationTestBase {
     }
 
     @Test
+    void missingTimestampUsesFetchTimeDuringSessionAndRegularCloseAfterHours() {
+        WIREMOCK.stubFor(get(urlPathEqualTo("/api/v1/market-indicators/prices"))
+                .willReturn(
+                        json("{\"result\":[{\"symbol\":\"KOSPI\",\"timestamp\":null,\"lastPrice\":\"5059.69\"}]}")));
+
+        refresher.refreshDomestic(); // 10:00 KST 장중
+        assertThat(saved().get(MarketIndicator.KOSPI).asOf()).isEqualTo(clock.instant());
+
+        clock.advance(Duration.ofHours(8)); // 18:00 KST 장 마감
+        refresher.resetSchedule();
+        refresher.refreshDomestic();
+        assertThat(saved().get(MarketIndicator.KOSPI).asOf())
+                .as("장 마감 후에는 정규장 종료 시각(15:30 KST)")
+                .isEqualTo(java.time.Instant.parse("2026-11-05T06:30:00Z"));
+        assertThat(saved().get(MarketIndicator.KOSPI).value()).isEqualByComparingTo("5059.69");
+    }
+
+    @Test
     void globalIndicatorsComeFromFredDailyClose() {
         for (String series : new String[] {"NASDAQCOM", "SP500", "DJIA", "DCOILWTICO", "VIXCLS"}) {
             WIREMOCK.stubFor(
