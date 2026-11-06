@@ -91,7 +91,33 @@ h2 { font-size: var(--font-size-lg); margin: 0; }
 .holdings th, .holdings td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-border); text-align: right; vertical-align: middle; }
 .holdings th:first-child, .holdings td:first-child { text-align: left; }
 .holdings th { font-size: var(--font-size-sm); color: var(--color-text-muted); font-weight: var(--font-weight-bold); }
+.holdings thead th { background: var(--color-card); }
+.holdings tbody tr:hover { background: var(--color-row-hover); }
 .security-code { color: var(--color-text-muted); font-size: var(--font-size-sm); margin-left: var(--space-1); }
+
+/* 종목 글자 아이콘 + 국가 국기 */
+.security-ident { display: inline-flex; align-items: center; gap: var(--space-3); }
+.security-badge { position: relative; flex-shrink: 0; }
+.security-avatar {
+  display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%;
+  font-weight: var(--font-weight-bold); font-size: var(--font-size-md); line-height: 1;
+}
+.market-flag {
+  position: absolute; right: -4px; bottom: -2px; width: 16px; height: 11px; border-radius: 2px;
+  box-shadow: 0 0 0 2px var(--color-bg);
+}
+.holdings .holding-name { color: var(--color-text); font-weight: normal; }
+.security-name { font-size: var(--font-size-md); font-weight: var(--font-weight-bold); }
+.security-label { display: inline-flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--space-1); }
+.security-label .security-code { margin-left: 0; }
+.tone-1 { background: var(--avatar-1-bg); color: var(--avatar-1-fg); }
+.tone-2 { background: var(--avatar-2-bg); color: var(--avatar-2-fg); }
+.tone-3 { background: var(--avatar-3-bg); color: var(--avatar-3-fg); }
+.tone-4 { background: var(--avatar-4-bg); color: var(--avatar-4-fg); }
+.tone-5 { background: var(--avatar-5-bg); color: var(--avatar-5-fg); }
+.tone-6 { background: var(--avatar-6-bg); color: var(--avatar-6-fg); }
+.tone-7 { background: var(--avatar-7-bg); color: var(--avatar-7-fg); }
+.tone-8 { background: var(--avatar-8-bg); color: var(--avatar-8-fg); }
 
 .quote-cell .price { display: block; font-weight: var(--font-weight-bold); }
 .quote-cell .change { display: block; font-size: var(--font-size-sm); }
@@ -240,7 +266,12 @@ h2 { font-size: var(--font-size-lg); margin: 0; }
   /* 보유 종목 표 → 카드: 셀마다 머리글을 data-label로 보여 준다 */
   .holdings, .holdings tbody, .holdings tr, .holdings th, .holdings td { display: block; width: 100%; }
   .holdings thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  .holdings tr { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-3); margin-bottom: var(--space-3); }
+  .holdings tr {
+    border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-3); background: var(--color-card); box-shadow: var(--shadow-sm);
+  }
+  .holdings tbody tr:hover { background: var(--color-card); }
+  .market-flag { box-shadow: 0 0 0 2px var(--color-card); }
   .holdings th, .holdings td { border: none; padding: var(--space-1) 0; text-align: left; }
   .holdings td[data-label] { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); text-align: right; }
   .holdings td[data-label]::before { content: attr(data-label); color: var(--color-text-muted); font-size: var(--font-size-sm); text-align: left; flex-shrink: 0; }

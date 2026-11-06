@@ -40,4 +40,21 @@
   --color-kakao: #FEE500;
   --color-kakao-text: #191919;
   --color-backdrop: rgb(0 0 0 / 40%);
+
+  /* 보유 종목 카드·행 배경. 등락 색과 겹치지 않는 옅은 회청색 */
+  --color-card: #f3f6fb;
+  --color-row-hover: #f6f8fb;
+  --shadow-sm: 0 1px 3px rgb(31 35 40 / 8%);
+  --radius-lg: 12px;
+
+  /* 종목 글자 아이콘 색조 1~8(SecurityAvatar.TONES). 빨강·파랑 계열은 등락 색과 혼동되어 쓰지 않는다.
+     글자색은 배경 대비 4.5:1 이상 */
+  --avatar-1-bg: #d5f0ec; --avatar-1-fg: #0f5c52;
+  --avatar-2-bg: #dcefd9; --avatar-2-fg: #2d5a27;
+  --avatar-3-bg: #fbecc8; --avatar-3-fg: #6b4a00;
+  --avatar-4-bg: #fde2cf; --avatar-4-fg: #7a3b0e;
+  --avatar-5-bg: #e8defa; --avatar-5-fg: #4b2a85;
+  --avatar-6-bg: #e3e7ec; --avatar-6-fg: #37414d;
+  --avatar-7-bg: #ecebcf; --avatar-7-fg: #55531a;
+  --avatar-8-bg: #efe2d8; --avatar-8-fg: #5c3d2a;
 }
