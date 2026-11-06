@@ -156,8 +156,13 @@ h2 { font-size: var(--font-size-lg); margin: 0; }
 .guide-header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
 .guide-raw { white-space: pre-wrap; }
 .guide-disclaimer { font-size: var(--font-size-sm); color: var(--color-text-muted); border-top: 1px solid var(--color-border); padding-top: var(--space-2); }
-.guide-button { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--space-1) var(--space-2); margin-right: var(--space-2); vertical-align: middle; }
-.guide-reason { flex-basis: 100%; text-align: right; }
+/* 가이드·기록 버튼 + (비활성 시) 사유. grid라서 사유가 아래 줄 전체를 쓰고 묶음 폭은 버튼 기준이다
+   (inline-flex + wrap은 폭 계산 때 줄바꿈 전 너비를 합산해 표를 카드 밖으로 밀어냈다) */
+.guide-button {
+  display: inline-grid; grid-template-columns: auto auto; justify-content: end; align-items: center;
+  gap: var(--space-1) var(--space-2); margin-right: var(--space-2); vertical-align: middle;
+}
+.guide-reason { grid-column: 1 / -1; text-align: right; white-space: normal; }
 /* 가이드 버튼: 보조 버튼(기록·수정·삭제)보다 눈에 띄는 주 색 외곽선 버튼 */
 .btn-guide { border-color: var(--color-primary); color: var(--color-primary); font-weight: var(--font-weight-bold); white-space: nowrap; }
 .btn-guide:hover:not(:disabled) { background: var(--color-primary-subtle); }
@@ -289,7 +294,7 @@ h2 { font-size: var(--font-size-lg); margin: 0; }
   .holdings td[data-label]::before { content: attr(data-label); color: var(--color-text-muted); font-size: var(--font-size-sm); text-align: left; flex-shrink: 0; }
   .holdings .holding-name { font-size: var(--font-size-md); padding-bottom: var(--space-2); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-1); }
   .holdings .holding-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); white-space: normal; padding-top: var(--space-2); }
-  .holdings .holding-actions .guide-button { justify-content: flex-start; margin-right: auto; }
+  .holdings .holding-actions .guide-button { justify-content: start; margin-right: auto; }
   .holdings .guide-reason { text-align: left; }
   .holdings td[colspan] { display: block; }
   .holdings .quote-cell { flex-wrap: wrap; justify-content: flex-end; column-gap: var(--space-2); row-gap: 0; }

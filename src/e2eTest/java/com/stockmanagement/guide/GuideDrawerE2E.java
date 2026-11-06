@@ -38,6 +38,8 @@ class GuideDrawerE2E extends E2ETestBase {
     @Autowired
     private CredentialCipher cipher;
 
+    private long appleHolding;
+
     @BeforeEach
     void seed() {
         Fixtures f = new Fixtures(jdbc);
@@ -46,7 +48,7 @@ class GuideDrawerE2E extends E2ETestBase {
         f.holding(account, samsung, "71500", "10");
         f.quote(samsung, "71000", "70000", "OPEN", Instant.now());
         long apple = f.apple();
-        f.holding(account, apple, "185.2", "0.35");
+        appleHolding = f.holding(account, apple, "185.2", "0.35");
         f.quote(apple, "187.50", "190.00", "OPEN", Instant.now());
         credentialStore.save(
                 defaultUserId(),
@@ -107,6 +109,45 @@ class GuideDrawerE2E extends E2ETestBase {
         // Esc로 닫힌다
         page.keyboard().press("Escape");
         assertThat(drawer()).isHidden();
+    }
+
+    /** 오늘 한도(2회)를 다 쓴 것으로 만든다: 사유 문구("내일 00:00 (KST) 초기화")가 함께 표시된다. */
+    private void exhaustGuideQuota(long holding) {
+        for (int slot = 1; slot <= 2; slot++) {
+            jdbc.sql("""
+                            INSERT INTO guide_request (user_id, security_id, holding_id, account_id, usage_date, slot, status,
+                                provider, model, account_name_snapshot, price_snapshot, avg_price_snapshot, quantity_snapshot,
+                                return_rate_snapshot, currency, content, requested_at, completed_at)
+                            SELECT a.user_id, h.security_id, h.id, a.id, (now() AT TIME ZONE 'Asia/Seoul')::date, :slot,
+                                'SUCCEEDED', 'OPENAI', 'gpt-5', a.name, 187.5, 185.2, 0.35, 0.0124, 'USD',
+                                CAST(:content AS jsonb), now(), now()
+                            FROM holding h JOIN account a ON a.id = h.account_id WHERE h.id = :h
+                            """)
+                    .param("slot", slot)
+                    .param("h", holding)
+                    .param("content", GUIDE_JSON.replace("\\\"", "\""))
+                    .update();
+        }
+    }
+
+    @Test
+    void exhaustedQuotaReasonDoesNotPushRowActionsOutOfCard() {
+        exhaustGuideQuota(appleHolding);
+        setupAndLogin();
+        Locator reason = page.locator("#guide-btn-" + appleHolding + " .guide-reason");
+        assertThat(reason).hasText("내일 00:00 (KST) 초기화");
+
+        Number tableRight =
+                (Number) page.evaluate("() => document.querySelector('table.holdings').getBoundingClientRect().right");
+        Number cardRight =
+                (Number) page.evaluate("() => document.querySelector('section.account').getBoundingClientRect().right");
+        assertThat(tableRight.doubleValue()).as("표가 계좌 카드 안에 있다").isLessThanOrEqualTo(cardRight.doubleValue());
+        Number gap = (Number) page.evaluate("""
+                id => { const span = document.getElementById(id);
+                        const first = span.querySelector('button').getBoundingClientRect();
+                        return first.left - span.getBoundingClientRect().left; }
+                """, "guide-btn-" + appleHolding);
+        assertThat(gap.intValue()).as("가이드 버튼 왼쪽에 빈 공간이 없다").isLessThanOrEqualTo(1);
     }
 
     @Test
