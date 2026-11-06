@@ -173,6 +173,32 @@ class MarketIndicatorRefresherIT extends IntegrationTestBase {
         assertThat(saved.get(MarketIndicator.VIX).asOfDate()).isEqualTo(LocalDate.of(2026, 11, 4));
     }
 
+    @Test
+    void newestDateWinsAcrossSourcesAndFredIsFallback() {
+        for (String series : new String[] {"NASDAQCOM", "SP500", "DJIA", "DCOILWTICO", "VIXCLS"}) {
+            WIREMOCK.stubFor(
+                    get(urlPathEqualTo("/fred/series/observations"))
+                            .withQueryParam("series_id", equalTo(series))
+                            .willReturn(
+                                    json(
+                                            "{\"observations\":[{\"date\":\"2026-11-03\",\"value\":\"50\"},{\"date\":\"2026-11-02\",\"value\":\"49\"}]}")));
+        }
+        WIREMOCK.stubFor(get(urlPathEqualTo("/api/global/us_indices/daily_prices/VIX_History.csv"))
+                .willReturn(aResponse()
+                        .withBody("DATE,OPEN,HIGH,LOW,CLOSE\n11/04/2026,1,1,1,16.61\n11/05/2026,1,1,1,28.18\n")));
+        // SPX(Cboe)는 실패 → FRED 값 사용, WTI(야후) 스텁 없음 → FRED 값 사용
+
+        refresher.refreshGlobal();
+
+        Map<MarketIndicator, IndicatorQuote> saved = saved();
+        assertThat(saved.get(MarketIndicator.VIX).value()).as("더 최신인 Cboe").isEqualByComparingTo("28.18");
+        assertThat(saved.get(MarketIndicator.VIX).asOfDate()).isEqualTo(LocalDate.of(2026, 11, 5));
+        assertThat(saved.get(MarketIndicator.SP500).value())
+                .as("Cboe 실패 시 FRED")
+                .isEqualByComparingTo("50");
+        assertThat(saved.get(MarketIndicator.WTI).value()).as("야후 실패 시 FRED").isEqualByComparingTo("50");
+    }
+
     private static void stubCandles(String symbol, String previousClose) {
         WIREMOCK.stubFor(get(urlPathEqualTo("/api/v1/market-indicators/" + symbol + "/candles"))
                 .willReturn(json("{\"result\":{\"candles\":["

@@ -101,6 +101,14 @@ description: "Task list for 003-market-indicators"
 
 ---
 
+## Phase 5b: 개정 — 최신 종가 제공처 (research R3-개정)
+
+- [X] T024 [US2] `IT/market/LatestCloseSourcesIT.java`(Cboe CSV 마지막 두 행, 야후 null 종가 건너뛰기·뉴욕 날짜, 실패 시 빈 결과)와
+  `MarketIndicatorRefresherIT` 최신 날짜 선택·FRED 대체 케이스
+- [X] T025 [US2] `MAIN/market/adapter/cboe/CboeIndicatorSource.java`, `adapter/yahoo/YahooIndicatorSource.java`(+Properties),
+  `MarketIndicatorRefresher` 제공처 중 최신 날짜 선택, 출처 문구 갱신
+- [X] T026 [US1] 장 마감 후 토스 시장 지표 `timestamp: null` 처리(값 유지, 기준 시각은 정규장 종료 또는 수신 시각)
+
 ## Phase 6: Polish & Cross-Cutting
 
 - [X] T020 [P] `E2E/market/MarketIndicatorsE2E.java`: 데스크톱 8개 카드 순서·등락 기호, 모바일 390px 가로 넘침 없음, axe 통과

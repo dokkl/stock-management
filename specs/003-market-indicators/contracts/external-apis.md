@@ -28,3 +28,25 @@ GET https://api.stlouisfed.org/fred/series/observations
 - API 키는 쿼리 파라미터라 요청 URL을 로그에 남기지 않는다(예외 메시지 포함).
 - 설정: `app.fred.base-url`(기본 `https://api.stlouisfed.org`), `app.fred.api-key`(`FRED_API_KEY`), `app.fred.timeout`.
   키가 비어 있으면 FRED 갱신을 건너뛴다(로컬·테스트).
+
+## Cboe 지수 일별 종가 CSV (S&P 500·VIX)
+
+```text
+GET https://cdn-api.cboe.com/api/global/us_indices/daily_prices/SPX_History.csv   → DATE,SPX
+GET https://cdn-api.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv   → DATE,OPEN,HIGH,LOW,CLOSE
+```
+
+날짜 `MM/dd/yyyy`, 마지막 열이 종가. 마지막 두 행을 최신·직전 값으로 쓴다. 설정 `app.cboe.base-url`, `app.cboe.timeout`.
+
+## 야후 파이낸스 차트 API (WTI 근월물 선물, 비공식)
+
+```text
+GET https://query1.finance.yahoo.com/v8/finance/chart/CL=F?range=10d&interval=1d
+→ {"chart":{"result":[{"timestamp":[…],"indicators":{"quote":[{"close":[…]}]}}]}}
+```
+
+종가가 null이 아닌 마지막 두 봉(날짜는 뉴욕 기준 봉 시작일). User-Agent 헤더 필요. 설정 `app.yahoo.base-url`, `app.yahoo.timeout`.
+
+## 제공처 선택
+
+지표별로 모든 제공처(Cboe·야후·FRED)를 조회해 가장 최신 날짜를 쓴다. 같은 날짜면 Cboe·야후(@Order 1·2)가 FRED(@Order 10)보다 앞선다.

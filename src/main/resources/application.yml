@@ -96,6 +96,14 @@ app:
     base-url: ${FRED_BASE_URL:https://api.stlouisfed.org}
     api-key: ${FRED_API_KEY:}
     timeout: 10s
+  cboe:
+    # 003: S&P 500·VIX 일별 종가 CSV(당일 저녁 갱신, 키 불필요)
+    base-url: ${CBOE_BASE_URL:https://cdn-api.cboe.com}
+    timeout: 20s
+  yahoo:
+    # 003: WTI 근월물 선물(비공식). 실패하면 FRED 현물가로 대체
+    base-url: ${YAHOO_BASE_URL:https://query1.finance.yahoo.com}
+    timeout: 10s
   quote:
     refresh-interval: 30s
     stale-after: 1m

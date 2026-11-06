@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -20,6 +21,7 @@ import org.springframework.web.client.RestClient;
  * 예외 메시지는 로그에 남기지 않는다(예외 종류만).
  */
 @Component
+@Order(10) // Cboe·야후보다 뒤(대체)
 class FredIndicatorSource implements GlobalIndicatorSource {
 
     private static final Logger log = LoggerFactory.getLogger(FredIndicatorSource.class);
