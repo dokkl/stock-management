@@ -54,8 +54,11 @@ class GuideController {
                 yield "guide/progress :: progress";
             }
             case GuideRequestResult.NoCredential noCredential -> {
+                // 공용 키가 없다: 관리자만 설정 화면으로 보내고, 일반 사용자에게는 안내 카드를 보여 준다
                 response.setStatus(HttpStatus.CONFLICT.value());
-                response.setHeader("HX-Redirect", request.getContextPath() + "/settings/ai");
+                if (request.isUserInRole("ADMIN")) {
+                    response.setHeader("HX-Redirect", request.getContextPath() + "/settings/ai");
+                }
                 yield "guide/failure :: no-credential";
             }
             case GuideRequestResult.QuotaExhausted exhausted -> {

@@ -39,7 +39,7 @@ class AiSettingsRoutesIT extends IntegrationTestBase {
     private ResultActions register(String provider, String key) throws Exception {
         return mockMvc.perform(put("/settings/ai/credentials/" + provider)
                 .param("apiKey", key)
-                .with(owner())
+                .with(admin())
                 .with(csrf())
                 .header("HX-Request", "true"));
     }
@@ -47,20 +47,20 @@ class AiSettingsRoutesIT extends IntegrationTestBase {
     private ResultActions select(String provider) throws Exception {
         return mockMvc.perform(put("/settings/ai/selection")
                 .param("provider", provider)
-                .with(owner())
+                .with(admin())
                 .with(csrf())
                 .header("HX-Request", "true"));
     }
 
     private String selected() {
-        return jdbc.sql("SELECT selected_ai_provider FROM app_user")
+        return jdbc.sql("SELECT selected_provider FROM ai_settings WHERE selected_provider IS NOT NULL")
                 .query(String.class)
                 .single();
     }
 
     @Test
     void settingsPageShowsKeyRequiredForEveryProvider() throws Exception {
-        mockMvc.perform(get("/settings/ai").with(owner()))
+        mockMvc.perform(get("/settings/ai").with(admin()))
                 .andExpect(status().isOk())
                 .andExpect(content()
                         .string(allOf(containsString("Claude"), containsString("OpenAI"), containsString("키 필요"))));
@@ -162,15 +162,15 @@ class AiSettingsRoutesIT extends IntegrationTestBase {
         register("OPENAI", OPENAI_KEY);
 
         mockMvc.perform(delete("/settings/ai/credentials/ANTHROPIC")
-                        .with(owner())
+                        .with(admin())
                         .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("키를 삭제했습니다")));
         assertThat(selected()).isEqualTo("OPENAI");
 
-        mockMvc.perform(delete("/settings/ai/credentials/OPENAI").with(owner()).with(csrf()))
+        mockMvc.perform(delete("/settings/ai/credentials/OPENAI").with(admin()).with(csrf()))
                 .andExpect(status().isOk());
-        assertThat(jdbc.sql("SELECT selected_ai_provider FROM app_user")
+        assertThat(jdbc.sql("SELECT selected_provider FROM ai_settings WHERE selected_provider IS NOT NULL")
                         .query(String.class)
                         .optional())
                 .isEmpty();
@@ -181,7 +181,7 @@ class AiSettingsRoutesIT extends IntegrationTestBase {
         register("ANTHROPIC", CLAUDE_KEY);
         register("OPENAI", OPENAI_KEY);
 
-        mockMvc.perform(delete("/settings/ai/credentials/OPENAI").with(owner()).with(csrf()))
+        mockMvc.perform(delete("/settings/ai/credentials/OPENAI").with(admin()).with(csrf()))
                 .andExpect(status().isOk());
 
         assertThat(selected()).isEqualTo("ANTHROPIC");
@@ -223,7 +223,7 @@ class AiSettingsRoutesIT extends IntegrationTestBase {
     void missingCsrfIs403() throws Exception {
         mockMvc.perform(put("/settings/ai/credentials/ANTHROPIC")
                         .param("apiKey", CLAUDE_KEY)
-                        .with(owner()))
+                        .with(admin()))
                 .andExpect(status().isForbidden());
         assertThat(jdbc.sql("SELECT count(*) FROM ai_credential")
                         .query(Long.class)

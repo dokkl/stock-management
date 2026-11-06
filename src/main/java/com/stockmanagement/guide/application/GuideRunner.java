@@ -100,7 +100,7 @@ public class GuideRunner {
         if (job.tradingStatus() != TradingStatus.ACTIVE) {
             return fail(job, FailureKind.INVALID_STATE);
         }
-        Optional<ApiKey> key = credentials.keyFor(job.userId(), job.provider());
+        Optional<ApiKey> key = credentials.keyFor(job.provider());
         AiGuideProvider provider = providers.get(job.provider());
         if (key.isEmpty() || provider == null) {
             return fail(job, FailureKind.CREDENTIAL_ERROR);

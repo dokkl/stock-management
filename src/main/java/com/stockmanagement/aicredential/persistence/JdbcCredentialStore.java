@@ -5,7 +5,6 @@ import com.stockmanagement.aicredential.application.StoredCredential;
 import com.stockmanagement.aicredential.application.port.CredentialStore;
 import com.stockmanagement.aicredential.domain.AiProvider;
 import com.stockmanagement.common.crypto.EncryptedSecret;
-import com.stockmanagement.user.domain.UserId;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
@@ -23,9 +22,8 @@ class JdbcCredentialStore implements CredentialStore {
     }
 
     @Override
-    public List<StoredCredential> findAll(UserId userId) {
-        return jdbc.sql("SELECT provider, last4, verified_at FROM ai_credential WHERE user_id = :userId ORDER BY id")
-                .param("userId", userId.value())
+    public List<StoredCredential> findAll() {
+        return jdbc.sql("SELECT provider, last4, verified_at FROM ai_credential ORDER BY id")
                 .query((rs, n) -> new StoredCredential(
                         AiProvider.valueOf(rs.getString("provider")),
                         rs.getString("last4"),
@@ -34,12 +32,10 @@ class JdbcCredentialStore implements CredentialStore {
     }
 
     @Override
-    public Optional<EncryptedSecret> findSecret(UserId userId, AiProvider provider) {
+    public Optional<EncryptedSecret> findSecret(AiProvider provider) {
         return jdbc.sql("""
-                        SELECT ciphertext, iv, key_version FROM ai_credential
-                        WHERE user_id = :userId AND provider = :provider
+                        SELECT ciphertext, iv, key_version FROM ai_credential WHERE provider = :provider
                         """)
-                .param("userId", userId.value())
                 .param("provider", provider.name())
                 .query((rs, n) ->
                         new EncryptedSecret(rs.getBytes("ciphertext"), rs.getBytes("iv"), rs.getShort("key_version")))
@@ -47,16 +43,14 @@ class JdbcCredentialStore implements CredentialStore {
     }
 
     @Override
-    public void save(UserId userId, AiProvider provider, EncryptedApiKey key, Instant verifiedAt) {
+    public void save(AiProvider provider, EncryptedApiKey key, Instant verifiedAt) {
         jdbc.sql("""
-                        INSERT INTO ai_credential (user_id, provider, ciphertext, iv, key_version, last4, verified_at, created_at,
-                            updated_at)
-                        VALUES (:userId, :provider, :ciphertext, :iv, :keyVersion, :last4, :now, :now, :now)
-                        ON CONFLICT (user_id, provider) DO UPDATE SET
+                        INSERT INTO ai_credential (provider, ciphertext, iv, key_version, last4, verified_at, created_at, updated_at)
+                        VALUES (:provider, :ciphertext, :iv, :keyVersion, :last4, :now, :now, :now)
+                        ON CONFLICT (provider) DO UPDATE SET
                             ciphertext = EXCLUDED.ciphertext, iv = EXCLUDED.iv, key_version = EXCLUDED.key_version,
                             last4 = EXCLUDED.last4, verified_at = EXCLUDED.verified_at, updated_at = EXCLUDED.updated_at
                         """)
-                .param("userId", userId.value())
                 .param("provider", provider.name())
                 .param("ciphertext", key.secret().ciphertext())
                 .param("iv", key.secret().iv())
@@ -67,28 +61,27 @@ class JdbcCredentialStore implements CredentialStore {
     }
 
     @Override
-    public boolean delete(UserId userId, AiProvider provider) {
-        return jdbc.sql("DELETE FROM ai_credential WHERE user_id = :userId AND provider = :provider")
-                        .param("userId", userId.value())
+    public boolean delete(AiProvider provider) {
+        return jdbc.sql("DELETE FROM ai_credential WHERE provider = :provider")
                         .param("provider", provider.name())
                         .update()
                 > 0;
     }
 
     @Override
-    public Optional<AiProvider> selectedProvider(UserId userId) {
-        return jdbc.sql(
-                        "SELECT selected_ai_provider FROM app_user WHERE id = :userId AND selected_ai_provider IS NOT NULL")
-                .param("userId", userId.value())
+    public Optional<AiProvider> selectedProvider() {
+        return jdbc.sql("SELECT selected_provider FROM ai_settings WHERE selected_provider IS NOT NULL")
                 .query(String.class)
                 .optional()
                 .map(AiProvider::valueOf);
     }
 
     @Override
-    public void select(UserId userId, AiProvider provider) {
-        jdbc.sql("UPDATE app_user SET selected_ai_provider = :provider WHERE id = :userId")
-                .param("userId", userId.value())
+    public void select(AiProvider provider) {
+        jdbc.sql("""
+                        INSERT INTO ai_settings (id, selected_provider, updated_at) VALUES (true, :provider, now())
+                        ON CONFLICT (id) DO UPDATE SET selected_provider = EXCLUDED.selected_provider, updated_at = now()
+                        """)
                 .param("provider", provider == null ? null : provider.name())
                 .update();
     }

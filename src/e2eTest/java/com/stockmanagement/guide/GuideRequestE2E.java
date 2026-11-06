@@ -79,12 +79,8 @@ class GuideRequestE2E extends E2ETestBase {
     @Test
     void requestsGuideTwiceThenButtonIsDisabled() {
         setupAndLogin();
-        credentialStore.save(
-                defaultUserId(),
-                AiProvider.OPENAI,
-                cipher.encrypt(ApiKey.of("sk-proj-e2e-guide-key-1234")),
-                Instant.now());
-        credentialStore.select(defaultUserId(), AiProvider.OPENAI);
+        credentialStore.save(AiProvider.OPENAI, cipher.encrypt(ApiKey.of("sk-proj-e2e-guide-key-1234")), Instant.now());
+        credentialStore.select(AiProvider.OPENAI);
         page.reload();
         waitForHtmx();
         assertThat(guideButton()).hasText("가이드 (남은 2회)");
@@ -127,11 +123,8 @@ class GuideRequestE2E extends E2ETestBase {
     void claudeGuideShowsSupplyDemandAndSourcedIssues() {
         setupAndLogin();
         credentialStore.save(
-                defaultUserId(),
-                AiProvider.ANTHROPIC,
-                cipher.encrypt(ApiKey.of("sk-ant-e2e-guide-key-5678")),
-                Instant.now());
-        credentialStore.select(defaultUserId(), AiProvider.ANTHROPIC);
+                AiProvider.ANTHROPIC, cipher.encrypt(ApiKey.of("sk-ant-e2e-guide-key-5678")), Instant.now());
+        credentialStore.select(AiProvider.ANTHROPIC);
         String guide = "{\\\"summary\\\":\\\"완만한 상승 흐름입니다.\\\",\\\"diagnosis\\\":\\\"평단가 근처입니다.\\\","
                 + "\\\"supplyDemand\\\":\\\"외국인이 순매수 중입니다.\\\",\\\"issues\\\":[{\\\"title\\\":\\\"반도체 수출 규제 강화\\\","
                 + "\\\"summary\\\":\\\"대중 수출 규제가 강화되었습니다.\\\",\\\"impact\\\":\\\"NEGATIVE\\\","

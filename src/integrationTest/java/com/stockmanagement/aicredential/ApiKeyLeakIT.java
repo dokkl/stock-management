@@ -39,7 +39,7 @@ class ApiKeyLeakIT extends IntegrationTestBase {
         WIREMOCK.resetAll();
         ai.anthropicResponds(503);
         results.add(register("ANTHROPIC", OUTAGE));
-        results.add(mockMvc.perform(get("/settings/ai").with(owner())).andReturn());
+        results.add(mockMvc.perform(get("/settings/ai").with(admin())).andReturn());
 
         for (String key : List.of(VALID, REJECTED, OUTAGE)) {
             assertThat(output.getAll()).as("로그").doesNotContain(key);
@@ -81,7 +81,7 @@ class ApiKeyLeakIT extends IntegrationTestBase {
         assertThat(output.getAll()).doesNotContain(VALID);
         assertThat(request.getResponse().getContentAsString()).doesNotContain(VALID);
         assertThat(status.getResponse().getContentAsString())
-                .contains("AI 키를 확인해 주세요")
+                .contains("AI 키 문제로")
                 .doesNotContain(VALID);
         assertThat(textColumnsContaining(VALID)).isZero();
     }
@@ -100,7 +100,7 @@ class ApiKeyLeakIT extends IntegrationTestBase {
     private MvcResult register(String provider, String key) throws Exception {
         return mockMvc.perform(put("/settings/ai/credentials/" + provider)
                         .param("apiKey", key)
-                        .with(owner())
+                        .with(admin())
                         .with(csrf())
                         .header("HX-Request", "true"))
                 .andReturn();

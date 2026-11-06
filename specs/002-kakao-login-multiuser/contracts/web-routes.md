@@ -40,7 +40,7 @@
 | `/accounts/{id}`(PUT/DELETE), `/accounts/{id}/edit`, `/accounts/{id}/header`, `POST /accounts/{id}/holdings` | `account.user_id` |
 | `/holdings/{id}`(GET/PUT/DELETE), `/holdings/{id}/edit`, `/holdings/{id}/guides`, `/holdings/{id}/guide-button` | holding → account.user_id |
 | `/guides/{id}`, `/guides/{id}/status` | `guide_request.user_id` |
-| `/settings/ai/**` | 현재 사용자 키·선택만 다룬다(경로에 사용자 id 없음) |
+| `/settings/ai/**` | **관리자 전용**(변경 012): 공용 AI 키·선택을 다룬다. 일반 사용자는 404 |
 | `/securities/{id}/guides` | 종목은 공유, **기록은 현재 사용자 것만** 보인다 |
 | `/`, `/fragments/quotes` | 현재 사용자 계좌·보유만 |
 | `/securities/search` | 공유(소유권 없음) |

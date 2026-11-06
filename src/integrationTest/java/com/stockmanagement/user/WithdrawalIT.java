@@ -58,8 +58,7 @@ class WithdrawalIT extends IntegrationTestBase {
         long samsung = f.samsung();
         long aHolding = f.holding(f.account(a.value(), "A 계좌"), samsung, "71500", "10");
         f.holding(f.account(b.value(), "B 계좌"), samsung, "70000", "1");
-        credentials.save(a, AiProvider.OPENAI, cipher.encrypt(ApiKey.of("sk-proj-withdraw-a-1111")), clock.instant());
-        credentials.save(b, AiProvider.OPENAI, cipher.encrypt(ApiKey.of("sk-proj-withdraw-b-2222")), clock.instant());
+        credentials.save(AiProvider.OPENAI, cipher.encrypt(ApiKey.of("sk-proj-withdraw-shared-1111")), clock.instant());
         jdbc.sql("""
                         INSERT INTO guide_request (user_id, security_id, holding_id, account_id, usage_date, slot, status,
                             provider, model, account_name_snapshot, price_snapshot, avg_price_snapshot, quantity_snapshot,
@@ -93,11 +92,15 @@ class WithdrawalIT extends IntegrationTestBase {
         mockMvc.perform(post("/settings/account/withdraw").with(as(a)).with(csrf()))
                 .andExpect(redirectedUrl("/login?withdrawn"));
 
-        for (String table : new String[] {"app_user", "account", "holding", "ai_credential", "guide_request"}) {
+        for (String table : new String[] {"app_user", "account", "holding", "guide_request"}) {
             assertThat(count(table, a)).as(table).isZero();
         }
         assertThat(count("account", b)).isEqualTo(1);
-        assertThat(count("ai_credential", b)).isEqualTo(1);
+        assertThat(jdbc.sql("SELECT count(*) FROM ai_credential")
+                        .query(Long.class)
+                        .single())
+                .as("공용 AI 키는 탈퇴와 무관하게 남는다")
+                .isEqualTo(1);
         WIREMOCK.verify(
                 1,
                 postRequestedFor(urlPathEqualTo("/v1/user/unlink"))
