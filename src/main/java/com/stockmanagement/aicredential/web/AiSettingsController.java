@@ -6,8 +6,6 @@ import com.stockmanagement.aicredential.application.CredentialService;
 import com.stockmanagement.aicredential.domain.AiProvider;
 import com.stockmanagement.common.domain.DomainValidationException;
 import com.stockmanagement.common.error.ResourceNotFoundException;
-import com.stockmanagement.user.domain.UserId;
-import com.stockmanagement.user.web.CurrentUser;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.Arrays;
 import org.springframework.http.HttpStatus;
@@ -20,7 +18,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
- * AI 설정 경로(contracts/web-routes.md). 변경 요청은 설정 패널 프래그먼트(#ai-settings)를 돌려준다.
+ * AI 설정 경로(contracts/web-routes.md). 관리자 전용(SecurityConfig)이며 공용 AI 키를 관리한다.
+ * 변경 요청은 설정 패널 프래그먼트(#ai-settings)를 돌려준다.
  * 입력한 키는 어떤 응답에도 다시 넣지 않는다: 오류로 다시 그릴 때도 입력란은 비어 있다(SC-009).
  */
 @Controller
@@ -36,21 +35,20 @@ class AiSettingsController {
     }
 
     @GetMapping("/settings/ai")
-    String page(@CurrentUser UserId userId, Model model) {
-        model.addAttribute("settings", credentialService.settings(userId));
+    String page(Model model) {
+        model.addAttribute("settings", credentialService.settings());
         return PAGE;
     }
 
     @PutMapping("/settings/ai/credentials/{provider}")
     String register(
-            @CurrentUser UserId userId,
             @PathVariable String provider,
             @RequestParam(defaultValue = "") String apiKey,
             Model model,
             HttpServletResponse response) {
         AiProvider target = parse(provider);
         try {
-            credentialService.register(userId, target, apiKey);
+            credentialService.register(target, apiKey);
             toast(model, "settings.ai.saved");
         } catch (DomainValidationException e) {
             keyError(model, response, target, e.getMessageKey(), HttpStatus.UNPROCESSABLE_CONTENT);
@@ -59,34 +57,30 @@ class AiSettingsController {
         } catch (CredentialCheckUnavailableException e) {
             keyError(model, response, target, "ai.key.unavailable", HttpStatus.SERVICE_UNAVAILABLE);
         }
-        return panel(userId, model);
+        return panel(model);
     }
 
     @DeleteMapping("/settings/ai/credentials/{provider}")
-    String delete(@CurrentUser UserId userId, @PathVariable String provider, Model model) {
-        credentialService.delete(userId, parse(provider));
+    String delete(@PathVariable String provider, Model model) {
+        credentialService.delete(parse(provider));
         toast(model, "settings.ai.deleted");
-        return panel(userId, model);
+        return panel(model);
     }
 
     @PutMapping("/settings/ai/selection")
-    String select(
-            @CurrentUser UserId userId,
-            @RequestParam(defaultValue = "") String provider,
-            Model model,
-            HttpServletResponse response) {
+    String select(@RequestParam(defaultValue = "") String provider, Model model, HttpServletResponse response) {
         try {
-            credentialService.select(userId, parseSelection(provider));
+            credentialService.select(parseSelection(provider));
             toast(model, "settings.ai.selectionSaved");
         } catch (DomainValidationException e) {
             response.setStatus(HttpStatus.UNPROCESSABLE_CONTENT.value());
             model.addAttribute("selectionErrorKey", e.getMessageKey());
         }
-        return panel(userId, model);
+        return panel(model);
     }
 
-    private String panel(UserId userId, Model model) {
-        model.addAttribute("settings", credentialService.settings(userId));
+    private String panel(Model model) {
+        model.addAttribute("settings", credentialService.settings());
         return PANEL;
     }
 

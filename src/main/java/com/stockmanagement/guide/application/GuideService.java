@@ -39,7 +39,7 @@ public class GuideService {
     public GuideRequestResult request(UserId userId, long holdingId) {
         GuideTarget target = store.findTarget(userId, holdingId)
                 .orElseThrow(() -> new ResourceNotFoundException("holding", holdingId));
-        Optional<AiProvider> provider = credentials.selectedProvider(userId);
+        Optional<AiProvider> provider = credentials.selectedProvider();
         if (provider.isEmpty()) {
             return new GuideRequestResult.NoCredential();
         }

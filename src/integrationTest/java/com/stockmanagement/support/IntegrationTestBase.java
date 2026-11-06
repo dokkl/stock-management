@@ -99,6 +99,11 @@ public abstract class IntegrationTestBase {
         return as(createOwner());
     }
 
+    /** 기본 사용자를 관리자(ADMIN_KAKAO_IDS에 든 사용자)로 로그인한 요청. 관리자만 AI 설정을 쓴다. */
+    protected RequestPostProcessor admin() {
+        return oauth2Login().oauth2User(new AppUserPrincipal(createOwner(), DisplayName.of("관리자"), true));
+    }
+
     /** 주어진 사용자로 로그인한 요청(카카오 로그인을 마친 세션과 같다). */
     protected RequestPostProcessor as(UserId userId) {
         return oauth2Login().oauth2User(new AppUserPrincipal(userId, DisplayName.of("테스트 사용자")));

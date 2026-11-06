@@ -50,12 +50,8 @@ class GuideDrawerE2E extends E2ETestBase {
         long apple = f.apple();
         appleHolding = f.holding(account, apple, "185.2", "0.35");
         f.quote(apple, "187.50", "190.00", "OPEN", Instant.now());
-        credentialStore.save(
-                defaultUserId(),
-                AiProvider.OPENAI,
-                cipher.encrypt(ApiKey.of("sk-proj-drawer-e2e-1234")),
-                Instant.now());
-        credentialStore.select(defaultUserId(), AiProvider.OPENAI);
+        credentialStore.save(AiProvider.OPENAI, cipher.encrypt(ApiKey.of("sk-proj-drawer-e2e-1234")), Instant.now());
+        credentialStore.select(AiProvider.OPENAI);
 
         WIREMOCK.resetAll();
         WIREMOCK.stubFor(post(urlEqualTo("/oauth2/token"))

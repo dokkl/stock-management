@@ -13,7 +13,10 @@ import com.stockmanagement.support.E2ETestBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/** quickstart S4: AI 키 등록과 선택 (US4). 가이드 버튼에서 설정 화면으로 이동하는 1단계는 US3에서 다룬다. */
+/**
+ * quickstart S4: AI 키 등록과 선택 (US4). 관리자(기본 사용자) 전용이며 등록한 키는 모든 사용자가 쓴다. 가이드 버튼에서 설정 화면으로
+ * 이동하는 1단계는 US3에서 다룬다.
+ */
 class AiSettingsE2E extends E2ETestBase {
 
     private static final String CLAUDE_KEY = "sk-ant-api03-e2e-valid-abcd";
@@ -106,5 +109,18 @@ class AiSettingsE2E extends E2ETestBase {
                 .withStatus(status)
                 .withHeader("Content-Type", "application/json")
                 .withBody("{\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid\"}}");
+    }
+
+    @Test
+    void memberHasNoAiSettingsMenuOrPage() {
+        loginAs(2002, "일반 사용자");
+        assertThat(page.getByRole(AriaRole.NAVIGATION)
+                        .getByRole(AriaRole.LINK, new Locator.GetByRoleOptions().setName("AI 설정")))
+                .hasCount(0);
+
+        page.navigate(url("/settings/ai"));
+        assertThat(page.getByRole(AriaRole.HEADING, new Page.GetByRoleOptions().setLevel(1)))
+                .hasText("페이지를 찾을 수 없습니다");
+        assertNoAccessibilityViolations();
     }
 }

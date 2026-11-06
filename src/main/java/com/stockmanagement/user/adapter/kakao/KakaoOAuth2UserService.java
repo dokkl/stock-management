@@ -1,6 +1,8 @@
 package com.stockmanagement.user.adapter.kakao;
 
+import com.stockmanagement.user.application.AdminProperties;
 import com.stockmanagement.user.application.UserService;
+import com.stockmanagement.user.domain.AdminPolicy;
 import com.stockmanagement.user.domain.DisplayName;
 import com.stockmanagement.user.domain.KakaoId;
 import com.stockmanagement.user.domain.UserId;
@@ -23,9 +25,11 @@ public class KakaoOAuth2UserService implements OAuth2UserService<OAuth2UserReque
 
     private final OAuth2UserService<OAuth2UserRequest, OAuth2User> delegate = new DefaultOAuth2UserService();
     private final UserService userService;
+    private final AdminPolicy adminPolicy;
 
-    public KakaoOAuth2UserService(UserService userService) {
+    public KakaoOAuth2UserService(UserService userService, AdminProperties adminProperties) {
         this.userService = userService;
+        this.adminPolicy = adminProperties.policy();
     }
 
     @Override
@@ -40,7 +44,7 @@ public class KakaoOAuth2UserService implements OAuth2UserService<OAuth2UserReque
         KakaoId kakaoId = kakaoId(kakao.getAttributes().get("id"));
         DisplayName name = DisplayName.of(nickname(kakao.getAttributes()));
         UserId userId = userService.signIn(kakaoId, name);
-        return new AppUserPrincipal(userId, name);
+        return new AppUserPrincipal(userId, name, adminPolicy.isAdmin(kakaoId));
     }
 
     private static KakaoId kakaoId(Object raw) {

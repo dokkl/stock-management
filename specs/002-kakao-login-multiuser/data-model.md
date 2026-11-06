@@ -107,3 +107,10 @@
 | FR-013~014 | 사용자별 계좌·보유 상한, 슬롯 유니크에 user_id |
 | FR-015~016 | ON DELETE CASCADE, kakao_unlink_queue, kakao_id 재가입 |
 | FR-017 | 레거시 사용자 행과 원자적 인수 |
+
+## 변경 012: 공용 AI 키 (V11)
+
+- `ai_credential`: `user_id` 컬럼·FK 제거, `provider` UNIQUE(공급자당 1개, 관리자 공용).
+- `ai_settings`(신규, 항상 1행): `id BOOLEAN PK CHECK (id)`, `selected_provider VARCHAR(20) NULL`, `updated_at`.
+  가이드용 공급자 선택. `app_user.selected_ai_provider`는 제거한다.
+- V11은 Flyway placeholder `admin_kakao_ids`(= `ADMIN_KAKAO_IDS`)로 남길 키의 주인을 정한다. 지정이 없으면 `min(app_user.id)`.

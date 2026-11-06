@@ -51,6 +51,8 @@ public abstract class E2ETestBase {
         registry.add("app.kakao.auth-base-url", WIREMOCK::baseUrl);
         registry.add("app.kakao.api-base-url", WIREMOCK::baseUrl);
         registry.add("app.kakao.admin-key", () -> KakaoStubs.ADMIN_KEY);
+        // 기본 사용자(카카오 1001)가 관리자다: AI 설정(공용 키)을 관리한다
+        registry.add("app.admin.kakao-ids", () -> String.valueOf(Fixtures.DEFAULT_KAKAO_ID));
         registry.add("spring.security.oauth2.client.registration.kakao.client-id", () -> "test-kakao-client");
         registry.add("spring.security.oauth2.client.registration.kakao.client-secret", () -> "test-kakao-secret");
         registry.add("app.ai.base-urls.anthropic", WIREMOCK::baseUrl);

@@ -31,8 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 /** 가이드 사용자 격리(T028): 남의 가이드·진행 상태·보유 종목 가이드 요청은 404, 기록은 자기 것만, 키도 자기 것만. */
 class CrossUserGuideIT extends IntegrationTestBase {
 
-    private static final String A_KEY = "sk-proj-user-a-openai-1111";
-    private static final String B_KEY = "sk-proj-user-b-openai-2222";
+    private static final String SHARED_KEY = "sk-proj-admin-shared-openai-1111";
 
     @Autowired
     private CredentialStore credentials;
@@ -56,10 +55,8 @@ class CrossUserGuideIT extends IntegrationTestBase {
         aHolding = f.holding(f.account(a.value(), "A 계좌"), samsung, "71500", "10");
         bHolding = f.holding(f.account(b.value(), "B 계좌"), samsung, "70000", "1");
         f.quote(samsung, "71000", "70000", "OPEN", clock.instant());
-        credentials.save(a, AiProvider.OPENAI, cipher.encrypt(ApiKey.of(A_KEY)), clock.instant());
-        credentials.select(a, AiProvider.OPENAI);
-        credentials.save(b, AiProvider.OPENAI, cipher.encrypt(ApiKey.of(B_KEY)), clock.instant());
-        credentials.select(b, AiProvider.OPENAI);
+        credentials.save(AiProvider.OPENAI, cipher.encrypt(ApiKey.of(SHARED_KEY)), clock.instant());
+        credentials.select(AiProvider.OPENAI);
         GuideFixture.stubMarket(WIREMOCK);
         new AiStubs(WIREMOCK).openAiGuide(AiStubs.GUIDE_JSON, "gpt-5", 0);
         g = new GuideFixture(jdbc);
@@ -112,15 +109,13 @@ class CrossUserGuideIT extends IntegrationTestBase {
     }
 
     @Test
-    void guideUsesRequestersOwnKey() throws Exception {
+    void everyUsersGuideUsesSharedAdminKey() throws Exception {
+        requestGuide(a, aHolding);
         requestGuide(b, bHolding);
 
         com.stockmanagement.support.IntegrationTestBase.WIREMOCK.verify(
+                2,
                 postRequestedFor(urlPathEqualTo(AiStubs.OPENAI_PATH))
-                        .withHeader("Authorization", equalTo("Bearer " + B_KEY)));
-        com.stockmanagement.support.IntegrationTestBase.WIREMOCK.verify(
-                0,
-                postRequestedFor(urlPathEqualTo(AiStubs.OPENAI_PATH))
-                        .withHeader("Authorization", equalTo("Bearer " + A_KEY)));
+                        .withHeader("Authorization", equalTo("Bearer " + SHARED_KEY)));
     }
 }

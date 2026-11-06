@@ -35,10 +35,12 @@
 ## 아키텍처 규칙 (ArchitectureTest가 강제)
 
 - 기능 패키지: `user`(카카오 로그인·탈퇴), `portfolio`, `market`, `aicredential`, `guide`, 공용은 `common`.
-- **사용자 범위(002)**: 사용자 소유 데이터(계좌·보유·AI 키·가이드)의 저장소 포트 메서드는 `UserId`를 필수 인자로 받고
+- **사용자 범위(002)**: 사용자 소유 데이터(계좌·보유·가이드)의 저장소 포트 메서드는 `UserId`를 필수 인자로 받고
   SQL에 `user_id` 조건을 붙인다(holding은 account JOIN). 남의 항목은 없는 항목과 똑같이 404. 컨트롤러는
   `@CurrentUser UserId`로 받는다. 애플리케이션·도메인은 Spring Security에 의존하지 않는다(ArchUnit).
-- 종목·시세·장 운영·수급은 공유 데이터다(사용자 범위 없음).
+- 종목·시세·장 운영·수급, **AI 키·공급자 선택**(`ai_credential`, `ai_settings`)은 공유 데이터다(사용자 범위 없음).
+  AI 키는 관리자(`ADMIN_KAKAO_IDS` → `ROLE_ADMIN`)만 `/settings/ai`에서 관리하고 모든 사용자의 가이드가 쓴다.
+  일반 사용자에게 관리자 경로는 404다(`SecurityConfig`).
 - 각 기능 안에서 `web → application → domain` 한 방향. `domain`은 domain 바깥에 의존하지 않는다.
 - `web`은 `persistence`/`adapter`에 의존하지 않는다. `application`은 `web`에 의존하지 않는다.
 - 외부 연동·영속성은 `application/port`의 **인터페이스**를 `persistence/` 또는 `adapter/`에서 구현한다.

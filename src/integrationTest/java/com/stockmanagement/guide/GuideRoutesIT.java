@@ -45,7 +45,8 @@ class GuideRoutesIT extends IntegrationTestBase {
     void setUp() {
         owner();
         g = new GuideFixture(jdbc).samsungHolding(clock.instant());
-        GuideFixture.storeOpenAiKey(credentialStore, cipher, clock.instant(), createOwner());
+        createOwner();
+        GuideFixture.storeOpenAiKey(credentialStore, cipher, clock.instant());
         GuideFixture.stubMarket(WIREMOCK);
         ai.openAiGuide(AiStubs.GUIDE_JSON, "gpt-5-2026-08-01", 0);
     }
@@ -143,11 +144,10 @@ class GuideRoutesIT extends IntegrationTestBase {
     @Test
     void claudeGuideShowsVerifiedIssuesWithSourceLinks() throws Exception {
         credentialStore.save(
-                createOwner(),
                 com.stockmanagement.aicredential.domain.AiProvider.ANTHROPIC,
                 cipher.encrypt(com.stockmanagement.aicredential.domain.ApiKey.of("sk-ant-guide-test-key-8888")),
                 clock.instant());
-        credentialStore.select(createOwner(), com.stockmanagement.aicredential.domain.AiProvider.ANTHROPIC);
+        credentialStore.select(com.stockmanagement.aicredential.domain.AiProvider.ANTHROPIC);
         ai.anthropicGuideWithSearch(
                 AiStubs.comprehensiveJson("https://news.example.com/chip", "https://made-up.example.com/x"),
                 "https://news.example.com/chip");
@@ -230,11 +230,30 @@ class GuideRoutesIT extends IntegrationTestBase {
     }
 
     @Test
-    void missingKeyRedirectsToSettings() throws Exception {
+    void missingSharedKeyTellsMemberToWaitForAdmin() throws Exception {
         jdbc.sql("DELETE FROM ai_credential").update();
-        jdbc.sql("UPDATE app_user SET selected_ai_provider = NULL").update();
+        jdbc.sql("DELETE FROM ai_settings").update();
 
         requestGuide(g.holding)
+                .andExpect(status().isConflict())
+                .andExpect(header().doesNotExist("HX-Redirect"))
+                .andExpect(content()
+                        .string(allOf(containsString("관리자가 아직 AI 키를 설정하지 않아"), not(containsString("/settings/ai")))));
+        assertThat(jdbc.sql("SELECT count(*) FROM guide_request")
+                        .query(Long.class)
+                        .single())
+                .isZero();
+    }
+
+    @Test
+    void missingSharedKeyRedirectsAdminToSettings() throws Exception {
+        jdbc.sql("DELETE FROM ai_credential").update();
+        jdbc.sql("DELETE FROM ai_settings").update();
+
+        mockMvc.perform(post("/holdings/" + g.holding + "/guides")
+                        .with(admin())
+                        .with(csrf())
+                        .header("HX-Request", "true"))
                 .andExpect(status().isConflict())
                 .andExpect(header().string("HX-Redirect", "/settings/ai"));
         assertThat(jdbc.sql("SELECT count(*) FROM guide_request")
@@ -325,7 +344,10 @@ class GuideRoutesIT extends IntegrationTestBase {
 
         pollStatus(id)
                 .andExpect(content()
-                        .string(allOf(containsString("AI 키를 확인해 주세요"), containsString("href=\"/settings/ai\""))));
+                        .string(allOf(
+                                containsString("AI 키 문제로"),
+                                containsString("관리자에게 알려 주세요"),
+                                not(containsString("href=\"/settings/ai\"")))));
     }
 
     @Test

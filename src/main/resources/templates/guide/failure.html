@@ -5,15 +5,21 @@
 <div th:fragment="failure" class="guide-card state-error" role="alert" th:id="'guide-' + ${guide.id}">
     <h2 th:text="#{guide.title(${guide.securityName})}">삼성전자 가이드</h2>
     <p th:text="#{'guide.failure.' + ${guide.failureKind.name()}}">실패 사유</p>
-    <p th:if="${guide.failureKind.name() == 'CREDENTIAL_ERROR'}">
-        <a th:href="@{/settings/ai}" th:text="#{guide.goToSettings}">AI 설정으로 이동</a>
-    </p>
+    <th:block th:if="${guide.failureKind.name() == 'CREDENTIAL_ERROR'}">
+        <p sec:authorize="hasRole('ADMIN')">
+            <a th:href="@{/settings/ai}" th:text="#{guide.goToSettings}">AI 설정으로 이동</a>
+        </p>
+        <p sec:authorize="!hasRole('ADMIN')" th:text="#{guide.askAdmin}">관리자에게 알려 주세요.</p>
+    </th:block>
 </div>
 
-<!-- 키 없음: htmx는 HX-Redirect로 이동한다. 일반 요청을 위한 안내. -->
+<!-- 공용 키 없음: 관리자는 htmx가 HX-Redirect로 AI 설정에 이동한다. 일반 사용자에게는 관리자 설정을 기다리라고 안내한다. -->
 <div th:fragment="no-credential" class="guide-card" role="alert">
-    <p th:text="#{guide.noCredential}">AI 키를 먼저 등록해 주세요.</p>
-    <a th:href="@{/settings/ai}" th:text="#{guide.goToSettings}">AI 설정으로 이동</a>
+    <th:block sec:authorize="hasRole('ADMIN')">
+        <p th:text="#{guide.noCredential}">AI 키를 먼저 등록해 주세요.</p>
+        <a th:href="@{/settings/ai}" th:text="#{guide.goToSettings}">AI 설정으로 이동</a>
+    </th:block>
+    <p sec:authorize="!hasRole('ADMIN')" th:text="#{guide.noCredential.member}">관리자가 아직 AI 키를 설정하지 않았습니다.</p>
 </div>
 
 <div th:fragment="unavailable" class="guide-card state-error" role="alert">
