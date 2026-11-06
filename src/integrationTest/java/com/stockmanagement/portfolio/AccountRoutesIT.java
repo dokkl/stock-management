@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -15,6 +16,13 @@ import org.junit.jupiter.api.Test;
 
 /** contracts/web-routes.md 계좌 경로: 성공, 검증 실패, 권한 실패, 없는 리소스. */
 class AccountRoutesIT extends IntegrationTestBase {
+
+    @Test
+    void newAccountNameFieldShowsExamplePlaceholder() throws Exception {
+        mockMvc.perform(get("/").with(owner()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("placeholder=\"예: 토스증권\"")));
+    }
 
     @Test
     void createsAccount() throws Exception {

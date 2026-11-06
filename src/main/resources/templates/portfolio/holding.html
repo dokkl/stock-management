@@ -42,18 +42,24 @@
         </span>
     </th>
     <td th:replace="~{fragments/quote-cell :: price(${h}, false)}"></td>
-    <td th:attr="data-label=#{portfolio.col.avgPrice}" th:text="${#money.avgPrice(h.avgPrice, h.currency)}">₩71,500</td>
-    <td th:attr="data-label=#{portfolio.col.quantity}" th:text="${#money.quantity(h.quantity)}">10주</td>
+    <td class="num" th:attr="data-label=#{portfolio.col.avgPrice}" th:text="${#money.avgPrice(h.avgPrice, h.currency)}">₩71,500</td>
+    <td class="num" th:attr="data-label=#{portfolio.col.quantity}" th:text="${#money.quantity(h.quantity)}">10주</td>
     <td th:replace="~{fragments/quote-cell :: pnl(${h}, false)}"></td>
     <td class="holding-actions">
         <span th:replace="~{guide/button :: button(${h})}"></span>
-        <button type="button" class="btn-link"
-                th:hx-get="@{/holdings/{id}/edit(id=${h.id})}" hx-target="closest tr" hx-swap="outerHTML"
-                th:aria-label="#{portfolio.holding.edit(${h.name})}" th:text="#{common.edit}">수정</button>
-        <button type="button" class="btn-link danger"
-                th:hx-delete="@{/holdings/{id}(id=${h.id})}" hx-target="closest tr" hx-swap="outerHTML"
-                th:hx-confirm="#{portfolio.holding.deleteConfirm}"
-                th:aria-label="#{portfolio.holding.delete(${h.name})}" th:text="#{common.delete}">삭제</button>
+        <span class="row-tools">
+            <button type="button" class="btn btn-sm btn-ghost btn-square" th:title="#{common.edit}"
+                    th:hx-get="@{/holdings/{id}/edit(id=${h.id})}" hx-target="closest tr" hx-swap="outerHTML"
+                    th:aria-label="#{portfolio.holding.edit(${h.name})}">
+                <svg th:replace="~{fragments/icon :: icon('edit')}"></svg>
+            </button>
+            <button type="button" class="btn btn-sm btn-ghost btn-ghost-danger btn-square" th:title="#{common.delete}"
+                    th:hx-delete="@{/holdings/{id}(id=${h.id})}" hx-target="closest tr" hx-swap="outerHTML"
+                    th:hx-confirm="#{portfolio.holding.deleteConfirm}"
+                    th:aria-label="#{portfolio.holding.delete(${h.name})}">
+                <svg th:replace="~{fragments/icon :: icon('delete')}"></svg>
+            </button>
+        </span>
     </td>
 </tr>
 
@@ -66,8 +72,8 @@
     <td colspan="6">
         <form class="form-inline" th:hx-put="@{/holdings/{id}(id=${h.id})}" hx-target="closest tr" hx-swap="outerHTML">
             <span class="selected-security" th:text="${h.name} + ' (' + ${h.symbol} + ')'">삼성전자</span>
-            <div th:replace="~{fragments/field :: field('edit-avg-' + ${h.id}, 'avgPrice', #{portfolio.holding.avgPrice}, 'text', ${form != null ? form.avgPrice : #money.plain(h.avgPrice)}, 'decimal', null)}"></div>
-            <div th:replace="~{fragments/field :: field('edit-qty-' + ${h.id}, 'quantity', #{portfolio.holding.quantity}, 'text', ${form != null ? form.quantity : #money.plain(h.quantity)}, 'decimal', null)}"></div>
+            <div th:replace="~{fragments/field :: field('edit-avg-' + ${h.id}, 'avgPrice', #{portfolio.holding.avgPrice}, 'text', ${form != null ? form.avgPrice : #money.plain(h.avgPrice)}, 'decimal', null, null, true)}"></div>
+            <div th:replace="~{fragments/field :: field('edit-qty-' + ${h.id}, 'quantity', #{portfolio.holding.quantity}, 'text', ${form != null ? form.quantity : #money.plain(h.quantity)}, 'decimal', null, null, false)}"></div>
             <button th:replace="~{fragments/button :: button(#{common.save}, 'primary', 'submit')}"></button>
             <button type="button" class="btn"
                     th:hx-get="@{/holdings/{id}(id=${h.id})}" hx-target="closest tr" hx-swap="outerHTML"
@@ -112,8 +118,8 @@
         <input type="hidden" name="securityId" th:value="${f != null ? f.securityId : ''}">
         <input type="hidden" name="securityLabel" th:value="${f != null ? f.securityLabel : ''}">
     </div>
-    <div th:replace="~{fragments/field :: field('avg-' + ${accountId}, 'avgPrice', #{portfolio.holding.avgPrice}, 'text', ${f != null ? f.avgPrice : ''}, 'decimal', null)}"></div>
-    <div th:replace="~{fragments/field :: field('qty-' + ${accountId}, 'quantity', #{portfolio.holding.quantity}, 'text', ${f != null ? f.quantity : ''}, 'decimal', null)}"></div>
+    <div th:replace="~{fragments/field :: field('avg-' + ${accountId}, 'avgPrice', #{portfolio.holding.avgPrice}, 'text', ${f != null ? f.avgPrice : ''}, 'decimal', null, null, true)}"></div>
+    <div th:replace="~{fragments/field :: field('qty-' + ${accountId}, 'quantity', #{portfolio.holding.quantity}, 'text', ${f != null ? f.quantity : ''}, 'decimal', null, null, false)}"></div>
     <button th:replace="~{fragments/button :: button(#{portfolio.holding.add}, 'primary', 'submit')}"></button>
 </form>
 

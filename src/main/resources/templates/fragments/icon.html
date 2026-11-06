@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 버튼용 16px 선 아이콘. 장식용이므로 aria-hidden(버튼의 글자·aria-label이 이름이 된다). -->
+<svg th:fragment="icon(name)" aria-hidden="true" focusable="false" viewBox="0 0 16 16" class="btn-icon"
+     fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <th:block th:switch="${name}">
+        <!-- 기록: 되감기 시계 -->
+        <th:block th:case="'history'">
+            <path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9"/><path d="M2.5 2.5v2.5H5"/><path d="M8 5v3l2 1.5"/>
+        </th:block>
+        <!-- 수정: 연필 -->
+        <th:block th:case="'edit'">
+            <path d="M10.5 2.5l3 3L6 13H3v-3l7.5-7.5z"/><path d="M9 4l3 3"/>
+        </th:block>
+        <!-- 삭제: 휴지통 -->
+        <th:block th:case="'delete'">
+            <path d="M2.5 4.5h11"/><path d="M6 4.5V3h4v1.5"/><path d="M4 4.5l.7 8.5h6.6l.7-8.5"/><path d="M6.8 7v4M9.2 7v4"/>
+        </th:block>
+    </th:block>
+</svg>
+</body>
+</html>

@@ -48,6 +48,14 @@ h2 { font-size: var(--font-size-lg); margin: 0; }
 .btn[aria-busy="true"] { opacity: 0.6; cursor: progress; }
 .btn-sm { padding: var(--space-1) var(--space-3); font-size: var(--font-size-sm); gap: var(--space-1); }
 .btn-icon { width: 1em; height: 1em; flex-shrink: 0; }
+/* 보조 버튼(기록·수정·삭제): 아이콘 + 글자, 옅은 외곽선 */
+.btn-ghost { color: var(--color-text); white-space: nowrap; }
+.btn-ghost:hover { background: var(--color-surface); }
+.btn-ghost-danger { color: var(--color-danger); }
+/* 아이콘만 있는 정사각 버튼(수정·삭제). 이름은 aria-label, 마우스는 title 툴팁 */
+.btn-square { justify-content: center; width: 32px; height: 32px; padding: 0; }
+.btn-square .btn-icon { width: 16px; height: 16px; }
+.btn-ghost-danger:hover { border-color: var(--color-danger); }
 
 /* 폼 */
 .form { display: flex; flex-direction: column; gap: var(--space-4); }
@@ -58,6 +66,7 @@ h2 { font-size: var(--font-size-lg); margin: 0; }
   padding: var(--space-2) var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); font: inherit;
 }
 .field input[aria-invalid="true"] { border-color: var(--color-error); }
+.field input::placeholder { color: var(--color-text-muted); opacity: 1; }
 .field-hint { font-size: var(--font-size-sm); color: var(--color-text-muted); margin: 0; }
 .field-error { font-size: var(--font-size-sm); color: var(--color-error); margin: 0; }
 
@@ -147,8 +156,9 @@ h2 { font-size: var(--font-size-lg); margin: 0; }
 .guide-header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
 .guide-raw { white-space: pre-wrap; }
 .guide-disclaimer { font-size: var(--font-size-sm); color: var(--color-text-muted); border-top: 1px solid var(--color-border); padding-top: var(--space-2); }
-.guide-button { display: inline-flex; flex-direction: column; align-items: flex-end; gap: var(--space-1); margin-right: var(--space-2); vertical-align: middle; }
-/* 가이드 버튼: 표 안의 텍스트 링크(수정·삭제)와 구분되는 외곽선 버튼 */
+.guide-button { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: var(--space-1) var(--space-2); margin-right: var(--space-2); vertical-align: middle; }
+.guide-reason { flex-basis: 100%; text-align: right; }
+/* 가이드 버튼: 보조 버튼(기록·수정·삭제)보다 눈에 띄는 주 색 외곽선 버튼 */
 .btn-guide { border-color: var(--color-primary); color: var(--color-primary); font-weight: var(--font-weight-bold); white-space: nowrap; }
 .btn-guide:hover:not(:disabled) { background: var(--color-primary-subtle); }
 .btn-guide:active:not(:disabled) { background: var(--color-primary); color: var(--color-primary-text); }
@@ -213,7 +223,6 @@ h2 { font-size: var(--font-size-lg); margin: 0; }
 .guide-snapshot dt { font-size: var(--font-size-sm); color: var(--color-text-muted); }
 .guide-snapshot dd { margin: 0; font-weight: var(--font-weight-bold); }
 .pagination { display: flex; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-4); }
-.guide-history-link { font-size: var(--font-size-sm); }
 
 /* 카카오 로그인 */
 .login { display: flex; flex-direction: column; gap: var(--space-4); }
@@ -251,6 +260,9 @@ h2 { font-size: var(--font-size-lg); margin: 0; }
 .toast-action { display: flex; align-items: center; gap: var(--space-3); }
 .toast-action .btn { background: var(--color-bg); color: var(--color-text); }
 .holding-actions { white-space: nowrap; }
+.row-tools { display: inline-flex; gap: var(--space-2); vertical-align: middle; }
+.security-name, .pnl-cell > span, .quote-cell .change { white-space: nowrap; }
+.holdings .num { white-space: nowrap; }
 
 @media (max-width: 640px) {
   main { padding: var(--space-4); }
@@ -267,7 +279,7 @@ h2 { font-size: var(--font-size-lg); margin: 0; }
   .holdings, .holdings tbody, .holdings tr, .holdings th, .holdings td { display: block; width: 100%; }
   .holdings thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .holdings tr {
-    border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-3);
     margin-bottom: var(--space-3); background: var(--color-card); box-shadow: var(--shadow-sm);
   }
   .holdings tbody tr:hover { background: var(--color-card); }
@@ -277,7 +289,8 @@ h2 { font-size: var(--font-size-lg); margin: 0; }
   .holdings td[data-label]::before { content: attr(data-label); color: var(--color-text-muted); font-size: var(--font-size-sm); text-align: left; flex-shrink: 0; }
   .holdings .holding-name { font-size: var(--font-size-md); padding-bottom: var(--space-2); border-bottom: 1px solid var(--color-border); margin-bottom: var(--space-1); }
   .holdings .holding-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); white-space: normal; padding-top: var(--space-2); }
-  .holdings .holding-actions .guide-button { flex-direction: row; flex-wrap: wrap; align-items: center; margin-right: auto; }
+  .holdings .holding-actions .guide-button { justify-content: flex-start; margin-right: auto; }
+  .holdings .guide-reason { text-align: left; }
   .holdings td[colspan] { display: block; }
   .holdings .quote-cell { flex-wrap: wrap; justify-content: flex-end; column-gap: var(--space-2); row-gap: 0; }
   .holdings .quote-cell::before { margin-right: auto; }

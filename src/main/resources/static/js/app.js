@@ -83,6 +83,49 @@
     }
   });
 
+  // 금액 입력(data-thousands): 입력하는 동안 정수부에 천 단위 콤마를 넣는다. 소수점 이하는 그대로 둔다.
+  // 서버(HoldingForm)는 콤마를 지우고 해석한다. 커서는 같은 숫자 뒤에 오도록 되돌린다.
+  function groupThousands(raw) {
+    var clean = raw.replace(/[^\d.]/g, "");
+    var dot = clean.indexOf(".");
+    var intPart = dot >= 0 ? clean.slice(0, dot) : clean;
+    var frac = dot >= 0 ? "." + clean.slice(dot + 1).replace(/\./g, "") : "";
+    return intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",") + frac;
+  }
+
+  function formatThousands(input) {
+    var raw = input.value;
+    var next = groupThousands(raw);
+    if (next === raw) {
+      return;
+    }
+    var caret = input.selectionStart === null ? raw.length : input.selectionStart;
+    var significant = raw.slice(0, caret).replace(/[^\d.]/g, "").length;
+    input.value = next;
+    if (document.activeElement !== input) {
+      return;
+    }
+    var pos = 0;
+    for (var seen = 0; pos < next.length && seen < significant; pos++) {
+      if (next[pos] !== ",") {
+        seen++;
+      }
+    }
+    input.setSelectionRange(pos, pos);
+  }
+
+  function formatAllThousands() {
+    document.querySelectorAll("input[data-thousands]").forEach(formatThousands);
+  }
+
+  document.addEventListener("input", function (evt) {
+    if (evt.target.matches && evt.target.matches("input[data-thousands]")) {
+      formatThousands(evt.target);
+    }
+  });
+  document.addEventListener("htmx:afterSettle", formatAllThousands);
+  document.addEventListener("DOMContentLoaded", formatAllThousands);
+
   // 토스트는 4초 후 사라진다.
   document.addEventListener("htmx:oobAfterSwap", function () {
     document.querySelectorAll(".toast:not([data-timer])").forEach(function (toast) {
