@@ -109,12 +109,14 @@ class GuideRequestE2E extends E2ETestBase {
         assertThat(guideButton()).hasText("가이드 (남은 1회)");
         assertNoAccessibilityViolations();
 
-        // S5-2: 두 번째 요청 후 남은 횟수 0, 비활성, 초기화 안내
+        // S5-2: 패널을 닫고(모달) 두 번째 요청 → 남은 횟수 0, 비활성, 초기화 안내
+        page.keyboard().press("Escape");
         guideButton().click();
         assertThat(panel().locator("[aria-busy=true]")).isVisible();
         assertThat(panel().locator("article"))
                 .isVisible(new com.microsoft.playwright.assertions.LocatorAssertions.IsVisibleOptions()
                         .setTimeout(15_000));
+        page.keyboard().press("Escape");
         assertThat(guideButton()).hasText("가이드 (남은 0회)");
         assertThat(guideButton()).isDisabled();
         assertThat(page.getByText("내일 00:00 (KST) 초기화")).isVisible();

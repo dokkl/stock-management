@@ -99,6 +99,7 @@ class GuideRoutesIT extends IntegrationTestBase {
         pollStatus(id)
                 .andExpect(status().isOk())
                 .andExpect(header().string("HX-Trigger", containsString("guide-quota-changed-" + g.samsung)))
+                .andExpect(header().string("HX-Trigger", containsString("\"guide-ready\":{\"id\":" + id)))
                 .andExpect(content()
                         .string(allOf(
                                 containsString("최근 60일 동안 완만하게 올랐습니다."),
@@ -177,6 +178,29 @@ class GuideRoutesIT extends IntegrationTestBase {
         requestGuide(g.holding).andExpect(status().isAccepted());
 
         assertThat(g.awaitTerminal(g.latestGuideId(), WAIT)).isEqualTo("SUCCEEDED");
+    }
+
+    @Test
+    void cardEndpointReturnsCardWithoutEvents() throws Exception {
+        requestGuide(g.holding).andExpect(status().isAccepted());
+        long id = g.latestGuideId();
+        g.awaitTerminal(id, WAIT);
+
+        mockMvc.perform(get("/guides/" + id + "/card").with(owner()).header("HX-Request", "true"))
+                .andExpect(status().isOk())
+                .andExpect(header().doesNotExist("HX-Trigger"))
+                .andExpect(content().string(containsString("guide-headline")));
+        mockMvc.perform(get("/guides/" + id + "/card").with(as(userWithKakao(99_001))))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void pendingGuideMarksButtonAsInProgress() throws Exception {
+        ai.openAiGuide(AiStubs.GUIDE_JSON, "gpt-5", 1_500);
+        requestGuide(g.holding).andExpect(status().isAccepted());
+
+        mockMvc.perform(get("/holdings/" + g.holding + "/guide-button").with(owner()))
+                .andExpect(content().string(allOf(containsString("분석 중"), containsString("every 5s"))));
     }
 
     @Test

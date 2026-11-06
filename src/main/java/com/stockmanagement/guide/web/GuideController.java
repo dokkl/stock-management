@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 class GuideController {
 
     static final String QUOTA_CHANGED = "guide-quota-changed";
+    static final String GUIDE_READY = "guide-ready";
 
     private final GuideService guideService;
     private final DashboardQuery dashboardQuery;
@@ -79,7 +80,18 @@ class GuideController {
             return "guide/progress :: none";
         }
         model.addAttribute("guide", guide);
-        quotaChanged(response, guide.securityId());
+        quotaChanged(response, guide.securityId(), guide);
+        return guide.isSucceeded() ? "guide/result :: result" : "guide/failure :: failure";
+    }
+
+    /** 서랍 패널을 다시 열 때 쓰는 카드(완료 알림의 "보기"). 상태에 맞는 카드만 돌려주고 이벤트는 보내지 않는다. */
+    @GetMapping("/guides/{id}/card")
+    String card(@CurrentUser UserId userId, @PathVariable long id, Model model) {
+        GuideView guide = requireGuide(userId, id);
+        progress(model, guide);
+        if (guide.isPending()) {
+            return "guide/progress :: progress";
+        }
         return guide.isSucceeded() ? "guide/result :: result" : "guide/failure :: failure";
     }
 
@@ -115,5 +127,17 @@ class GuideController {
     /** 공통 이벤트와 종목별 이벤트를 함께 보낸다. 버튼은 자기 종목 이벤트만 듣는다(같은 종목의 다른 계좌 행 포함). */
     private static void quotaChanged(HttpServletResponse response, long securityId) {
         response.setHeader("HX-Trigger", QUOTA_CHANGED + ", " + QUOTA_CHANGED + "-" + securityId);
+    }
+
+    /**
+     * 완료(성공·실패) 시에는 버튼 갱신 이벤트에 더해 {@code guide-ready} 이벤트를 보낸다. 서랍 패널이 닫혀 있으면 화면이
+     * 토스트로 알린다. 헤더에는 한글을 실을 수 없으므로 ID만 보내고 종목 이름은 화면에서 찾는다.
+     */
+    private static void quotaChanged(HttpServletResponse response, long securityId, GuideView guide) {
+        response.setHeader(
+                "HX-Trigger",
+                "{\"" + QUOTA_CHANGED + "\":\"\",\"" + QUOTA_CHANGED + "-" + securityId + "\":\"\","
+                        + "\"" + GUIDE_READY + "\":{\"id\":" + guide.id() + ",\"securityId\":" + securityId
+                        + ",\"ok\":" + guide.isSucceeded() + "}}");
     }
 }

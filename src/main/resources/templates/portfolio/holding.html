@@ -27,15 +27,15 @@
 
 <!-- 보유 종목 행. 현재가·평가손익 셀은 대시보드의 30초 폴링(GET /fragments/quotes)이 교체한다. -->
 <tr th:fragment="row(h)" th:id="'holding-' + ${h.id}">
-    <th scope="row">
+    <th scope="row" class="holding-name">
         <span th:text="${h.name}">삼성전자</span>
         <span class="security-code" th:text="${h.symbol}">005930</span>
     </th>
     <td th:replace="~{fragments/quote-cell :: price(${h}, false)}"></td>
-    <td th:text="${#money.avgPrice(h.avgPrice, h.currency)}">₩71,500</td>
-    <td th:text="${#money.quantity(h.quantity)}">10주</td>
+    <td th:attr="data-label=#{portfolio.col.avgPrice}" th:text="${#money.avgPrice(h.avgPrice, h.currency)}">₩71,500</td>
+    <td th:attr="data-label=#{portfolio.col.quantity}" th:text="${#money.quantity(h.quantity)}">10주</td>
     <td th:replace="~{fragments/quote-cell :: pnl(${h}, false)}"></td>
-    <td>
+    <td class="holding-actions">
         <span th:replace="~{guide/button :: button(${h})}"></span>
         <button type="button" class="btn-link"
                 th:hx-get="@{/holdings/{id}/edit(id=${h.id})}" hx-target="closest tr" hx-swap="outerHTML"
