@@ -109,4 +109,38 @@ class RegisterHoldingsE2E extends E2ETestBase {
                 .click();
         assertThat(account("키움 일반")).hasCount(0);
     }
+
+    @Test
+    void accountNamePlaceholderAndAvgPriceThousandsSeparator() {
+        setupAndLogin();
+        Locator name = page.getByLabel("새 계좌 이름");
+        assertThat(name).hasAttribute("placeholder", "예: 토스증권");
+        assertThat(name).hasValue("");
+
+        createAccount("키움 일반");
+        Locator avg = account("키움 일반").getByLabel("평단가");
+        avg.pressSequentially("1234567");
+        assertThat(avg).hasValue("1,234,567");
+        // 가운데 숫자(4)를 지워도 커서가 같은 숫자 뒤에 남아 이어서 입력된다
+        for (int i = 0; i < 4; i++) {
+            avg.press("ArrowLeft");
+        }
+        avg.press("Backspace");
+        assertThat(avg).hasValue("123,567");
+        avg.pressSequentially("9");
+        assertThat(avg).hasValue("1,239,567");
+        avg.fill("");
+        avg.pressSequentially("185.205");
+        assertThat(avg).hasValue("185.205");
+
+        addHolding("키움 일반", "삼성", "005930", "1234567", "1");
+        Locator row = account("키움 일반").getByRole(AriaRole.ROW).filter(new Locator.FilterOptions().setHasText("삼성전자"));
+        assertThat(row).containsText("₩1,234,567");
+
+        row.getByRole(AriaRole.BUTTON, new Locator.GetByRoleOptions().setName("삼성전자 수정"))
+                .click();
+        assertThat(account("키움 일반").locator("input[name=avgPrice][id^=edit-avg-]"))
+                .hasValue("1,234,567");
+        assertNoAccessibilityViolations();
+    }
 }
