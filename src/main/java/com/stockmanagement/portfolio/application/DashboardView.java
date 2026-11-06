@@ -3,10 +3,12 @@ package com.stockmanagement.portfolio.application;
 import com.stockmanagement.common.domain.Currency;
 import com.stockmanagement.guide.domain.GuideQuota;
 import com.stockmanagement.market.domain.Exchange;
+import com.stockmanagement.market.domain.Market;
 import com.stockmanagement.market.domain.Quote;
 import com.stockmanagement.market.domain.QuoteStatus;
 import com.stockmanagement.market.domain.TradingStatus;
 import com.stockmanagement.portfolio.domain.HoldingValuation;
+import com.stockmanagement.portfolio.domain.SecurityAvatar;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -46,6 +48,14 @@ public record DashboardView(List<AccountView> accounts) {
             QuoteStatus quoteStatus,
             int guidesUsedToday,
             Long pendingGuideId) {
+
+        public Market market() {
+            return exchange.market();
+        }
+
+        public SecurityAvatar avatar() {
+            return SecurityAvatar.of(symbol, name);
+        }
 
         public boolean guidePending() {
             return pendingGuideId != null;

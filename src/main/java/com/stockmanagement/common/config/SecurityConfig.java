@@ -23,6 +23,7 @@ class SecurityConfig {
                                 "/login/oauth2/**",
                                 "/css/**",
                                 "/js/**",
+                                "/img/**",
                                 "/webjars/**",
                                 "/actuator/health",
                                 "/error")

@@ -214,6 +214,28 @@ class HoldingRoutesIT extends IntegrationTestBase {
     }
 
     @Test
+    void rowShowsLetterAvatarAndMarketFlag() throws Exception {
+        create(accountId, samsung, "71500", "10")
+                .andExpect(content().string(containsString("security-avatar tone-")))
+                .andExpect(content().string(containsString(">삼</span>")))
+                .andExpect(content().string(containsString("/img/flag-kr.svg")))
+                .andExpect(content().string(containsString("alt=\"한국 주식\"")));
+        create(accountId, apple, "185.20", "1")
+                .andExpect(content().string(containsString(">애</span>")))
+                .andExpect(content().string(containsString("/img/flag-us.svg")))
+                .andExpect(content().string(containsString("alt=\"미국 주식\"")));
+    }
+
+    @Test
+    void flagImagesArePublicSvg() throws Exception {
+        for (String flag : new String[] {"kr", "us"}) {
+            mockMvc.perform(get("/img/flag-{f}.svg", flag))
+                    .andExpect(status().isOk())
+                    .andExpect(header().string("Content-Type", containsString("image/svg+xml")));
+        }
+    }
+
+    @Test
     void requiresCsrf() throws Exception {
         mockMvc.perform(post("/accounts/{id}/holdings", accountId)
                         .param("securityId", String.valueOf(samsung))

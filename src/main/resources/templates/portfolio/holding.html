@@ -28,8 +28,18 @@
 <!-- 보유 종목 행. 현재가·평가손익 셀은 대시보드의 30초 폴링(GET /fragments/quotes)이 교체한다. -->
 <tr th:fragment="row(h)" th:id="'holding-' + ${h.id}">
     <th scope="row" class="holding-name">
-        <span th:text="${h.name}">삼성전자</span>
-        <span class="security-code" th:text="${h.symbol}">005930</span>
+        <span class="security-ident" th:with="avatar=${h.avatar()}, mkt=${h.market().name()}">
+            <span class="security-badge">
+                <span th:class="'security-avatar tone-' + ${avatar.tone()}" aria-hidden="true" th:text="${avatar.initial()}">삼</span>
+                <img class="market-flag" width="16" height="11"
+                     th:src="@{/img/flag-{m}.svg(m=${#strings.toLowerCase(mkt)})}" th:alt="#{'portfolio.market.' + ${mkt}}"
+                     src="/img/flag-kr.svg" alt="한국 주식">
+            </span>
+            <span class="security-label">
+                <span class="security-name" th:text="${h.name}">삼성전자</span>
+                <span class="security-code" th:text="${h.symbol}">005930</span>
+            </span>
+        </span>
     </th>
     <td th:replace="~{fragments/quote-cell :: price(${h}, false)}"></td>
     <td th:attr="data-label=#{portfolio.col.avgPrice}" th:text="${#money.avgPrice(h.avgPrice, h.currency)}">₩71,500</td>
