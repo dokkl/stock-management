@@ -6,6 +6,7 @@ import com.stockmanagement.aicredential.domain.ApiKey;
 import com.stockmanagement.aicredential.domain.KeyCheck;
 import com.stockmanagement.common.domain.DomainValidationException;
 import com.stockmanagement.guide.application.port.AiGuideProvider;
+import com.stockmanagement.user.domain.UserId;
 import java.time.Clock;
 import java.util.Arrays;
 import java.util.EnumMap;
@@ -45,13 +46,13 @@ public class CredentialService {
     }
 
     @Transactional(readOnly = true)
-    public AiSettingsView settings() {
+    public AiSettingsView settings(UserId userId) {
         Map<AiProvider, String> last4 = new EnumMap<>(AiProvider.class);
-        store.findAll().forEach(c -> last4.put(c.provider(), c.last4()));
+        store.findAll(userId).forEach(c -> last4.put(c.provider(), c.last4()));
         List<AiSettingsView.ProviderStatus> statuses = Arrays.stream(AiProvider.values())
                 .map(p -> new AiSettingsView.ProviderStatus(p, last4.get(p)))
                 .toList();
-        return new AiSettingsView(statuses, store.selectedProvider().orElse(null));
+        return new AiSettingsView(statuses, store.selectedProvider(userId).orElse(null));
     }
 
     /**
@@ -62,7 +63,7 @@ public class CredentialService {
      * @throws CredentialCheckUnavailableException 일시 장애로 확인하지 못함
      */
     @Transactional
-    public void register(AiProvider provider, String rawKey) {
+    public void register(UserId userId, AiProvider provider, String rawKey) {
         ApiKey key = ApiKey.of(rawKey);
         KeyCheck check = verify(provider, key);
         if (check == KeyCheck.INVALID) {
@@ -71,47 +72,49 @@ public class CredentialService {
         if (check == KeyCheck.UNAVAILABLE) {
             throw new CredentialCheckUnavailableException(provider);
         }
-        store.save(provider, cipher.encrypt(key), clock.instant());
-        if (store.selectedProvider().isEmpty()) {
-            store.select(provider);
+        store.save(userId, provider, cipher.encrypt(key), clock.instant());
+        if (store.selectedProvider(userId).isEmpty()) {
+            store.select(userId, provider);
         }
         log.info("AI 키 등록: provider={}, key={}", provider, key);
     }
 
     @Transactional
-    public void delete(AiProvider provider) {
-        if (!store.delete(provider)) {
+    public void delete(UserId userId, AiProvider provider) {
+        if (!store.delete(userId, provider)) {
             return;
         }
         log.info("AI 키 삭제: provider={}", provider);
-        if (store.selectedProvider().filter(provider::equals).isPresent()) {
-            store.select(store.findAll().stream()
-                    .map(StoredCredential::provider)
-                    .findFirst()
-                    .orElse(null));
+        if (store.selectedProvider(userId).filter(provider::equals).isPresent()) {
+            store.select(
+                    userId,
+                    store.findAll(userId).stream()
+                            .map(StoredCredential::provider)
+                            .findFirst()
+                            .orElse(null));
         }
     }
 
     /** 가이드에 쓸 공급자. 키가 하나도 없으면 비어 있다(FR-023d). */
     @Transactional(readOnly = true)
-    public Optional<AiProvider> selectedProvider() {
-        return store.selectedProvider();
+    public Optional<AiProvider> selectedProvider(UserId userId) {
+        return store.selectedProvider(userId);
     }
 
     /** 공급자 키 원문. 가이드 실행 직전에만 꺼낸다. 그 사이 키가 삭제되었으면 비어 있다. */
     @Transactional(readOnly = true)
-    public Optional<ApiKey> keyFor(AiProvider provider) {
-        return store.findSecret(provider).map(cipher::decrypt);
+    public Optional<ApiKey> keyFor(UserId userId, AiProvider provider) {
+        return store.findSecret(userId, provider).map(cipher::decrypt);
     }
 
     /** 키가 등록된 공급자만 선택할 수 있다. */
     @Transactional
-    public void select(AiProvider provider) {
-        boolean hasKey = store.findAll().stream().anyMatch(c -> c.provider() == provider);
+    public void select(UserId userId, AiProvider provider) {
+        boolean hasKey = store.findAll(userId).stream().anyMatch(c -> c.provider() == provider);
         if (!hasKey) {
             throw new DomainValidationException("provider", "ai.selection.noKey");
         }
-        store.select(provider);
+        store.select(userId, provider);
     }
 
     /** 어댑터가 예상 못한 예외를 던져도 원인 메시지(키가 섞일 수 있음)는 남기지 않고 일시 장애로 본다. */

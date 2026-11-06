@@ -43,6 +43,7 @@ class GuideSlotReservationIT extends IntegrationTestBase {
 
     private GuideReservation reservation(long securityId, long holdingId, long accountId, Instant at) {
         return new GuideReservation(
+                createOwner(),
                 securityId,
                 holdingId,
                 accountId,
@@ -76,7 +77,7 @@ class GuideSlotReservationIT extends IntegrationTestBase {
         assertThat(slotOf(first.getAsLong())).isEqualTo(1);
         assertThat(slotOf(second.getAsLong())).isEqualTo(2);
         assertThat(reserve()).isEmpty();
-        assertThat(guideService.quota(samsung).remaining()).isZero();
+        assertThat(guideService.quota(createOwner(), samsung).remaining()).isZero();
     }
 
     @Test
@@ -89,7 +90,7 @@ class GuideSlotReservationIT extends IntegrationTestBase {
 
         assertThat(again).isPresent();
         assertThat(slotOf(again.getAsLong())).isEqualTo(1);
-        assertThat(guideService.quota(samsung).remaining()).isZero();
+        assertThat(guideService.quota(createOwner(), samsung).remaining()).isZero();
     }
 
     @Test
@@ -124,7 +125,7 @@ class GuideSlotReservationIT extends IntegrationTestBase {
 
         clock.set(Instant.parse("2026-11-05T15:00:01Z")); // 다음 날 00:00:01 KST
 
-        assertThat(guideService.quota(samsung).remaining()).isEqualTo(2);
+        assertThat(guideService.quota(createOwner(), samsung).remaining()).isEqualTo(2);
         assertThat(reserve()).isPresent();
         assertThat(reserve()).isPresent();
     }
@@ -150,7 +151,7 @@ class GuideSlotReservationIT extends IntegrationTestBase {
 
         jdbc.sql("DELETE FROM holding WHERE id = :id").param("id", holding).update();
 
-        assertThat(store.find(id)).hasValueSatisfying(g -> {
+        assertThat(store.find(createOwner(), id)).hasValueSatisfying(g -> {
             assertThat(g.holdingId()).isNull();
             assertThat(g.rawText()).isEqualTo("원문");
             assertThat(g.accountName()).isEqualTo("키움 일반");

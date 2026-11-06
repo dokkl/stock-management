@@ -13,6 +13,7 @@ import com.stockmanagement.guide.domain.GuideQuota;
 import com.stockmanagement.guide.domain.GuideStatus;
 import com.stockmanagement.market.domain.Exchange;
 import com.stockmanagement.market.domain.TradingStatus;
+import com.stockmanagement.user.domain.UserId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -47,18 +48,19 @@ class JdbcGuideStore implements GuideStore {
     }
 
     @Override
-    public Optional<GuideTarget> findTarget(long holdingId) {
+    public Optional<GuideTarget> findTarget(UserId userId, long holdingId) {
         return jdbc.sql("""
                         SELECT h.id AS holding_id, a.id AS account_id, a.name AS account_name, s.id AS security_id,
                                s.symbol, coalesce(s.name_ko, s.name_en) AS name, s.exchange, s.currency,
                                s.trading_status, h.avg_price, h.quantity, q.price, q.prev_close
                         FROM holding h
-                        JOIN account a ON a.id = h.account_id AND a.deleted_at IS NULL
+                        JOIN account a ON a.id = h.account_id AND a.deleted_at IS NULL AND a.user_id = :userId
                         JOIN security s ON s.id = h.security_id
                         LEFT JOIN quote q ON q.security_id = s.id
                         WHERE h.id = :id
                         """)
                 .param("id", holdingId)
+                .param("userId", userId.value())
                 .query((rs, n) -> new GuideTarget(
                         rs.getLong("holding_id"),
                         rs.getLong("account_id"),
@@ -77,12 +79,13 @@ class JdbcGuideStore implements GuideStore {
     }
 
     @Override
-    public OptionalLong findPending(long securityId, LocalDate usageDate) {
+    public OptionalLong findPending(UserId userId, long securityId, LocalDate usageDate) {
         return jdbc.sql("""
                         SELECT id FROM guide_request
-                        WHERE security_id = :securityId AND usage_date = :date AND status = 'PENDING'
+                        WHERE user_id = :userId AND security_id = :securityId AND usage_date = :date AND status = 'PENDING'
                         ORDER BY id LIMIT 1
                         """)
+                .param("userId", userId.value())
                 .param("securityId", securityId)
                 .param("date", usageDate)
                 .query(Long.class)
@@ -104,14 +107,15 @@ class JdbcGuideStore implements GuideStore {
 
     private Optional<Long> insert(GuideReservation r, int slot) {
         return jdbc.sql("""
-                        INSERT INTO guide_request (security_id, holding_id, account_id, usage_date, slot, status, provider,
+                        INSERT INTO guide_request (user_id, security_id, holding_id, account_id, usage_date, slot, status, provider,
                             account_name_snapshot, price_snapshot, avg_price_snapshot, quantity_snapshot,
                             return_rate_snapshot, currency, requested_at)
-                        VALUES (:securityId, :holdingId, :accountId, :usageDate, :slot, 'PENDING', :provider,
+                        VALUES (:userId, :securityId, :holdingId, :accountId, :usageDate, :slot, 'PENDING', :provider,
                             :accountName, :price, :avgPrice, :quantity, :returnRate, :currency, :requestedAt)
-                        ON CONFLICT (security_id, usage_date, slot) WHERE status <> 'FAILED' DO NOTHING
+                        ON CONFLICT (user_id, security_id, usage_date, slot) WHERE status <> 'FAILED' DO NOTHING
                         RETURNING id
                         """)
+                .param("userId", r.userId().value())
                 .param("securityId", r.securityId())
                 .param("holdingId", r.holdingId())
                 .param("accountId", r.accountId())
@@ -130,11 +134,12 @@ class JdbcGuideStore implements GuideStore {
     }
 
     @Override
-    public int countActive(long securityId, LocalDate usageDate) {
+    public int countActive(UserId userId, long securityId, LocalDate usageDate) {
         return jdbc.sql("""
                         SELECT count(*) FROM guide_request
-                        WHERE security_id = :securityId AND usage_date = :date AND status <> 'FAILED'
+                        WHERE user_id = :userId AND security_id = :securityId AND usage_date = :date AND status <> 'FAILED'
                         """)
+                .param("userId", userId.value())
                 .param("securityId", securityId)
                 .param("date", usageDate)
                 .query(Integer.class)
@@ -144,7 +149,7 @@ class JdbcGuideStore implements GuideStore {
     @Override
     public Optional<GuideJob> findJob(long id) {
         return jdbc.sql("""
-                        SELECT g.id, g.status, g.provider, g.price_snapshot, g.avg_price_snapshot, g.quantity_snapshot,
+                        SELECT g.id, g.user_id, g.status, g.provider, g.price_snapshot, g.avg_price_snapshot, g.quantity_snapshot,
                                g.requested_at, s.symbol, coalesce(s.name_ko, s.name_en) AS name, s.exchange, s.currency,
                                s.trading_status, q.prev_close
                         FROM guide_request g
@@ -155,6 +160,7 @@ class JdbcGuideStore implements GuideStore {
                 .param("id", id)
                 .query((rs, n) -> new GuideJob(
                         rs.getLong("id"),
+                        new UserId(rs.getLong("user_id")),
                         GuideStatus.valueOf(rs.getString("status")),
                         AiProvider.valueOf(rs.getString("provider")),
                         rs.getString("symbol"),
@@ -171,10 +177,11 @@ class JdbcGuideStore implements GuideStore {
     }
 
     @Override
-    public Optional<GuideView> find(long id) {
+    public Optional<GuideView> find(UserId userId, long id) {
         return jdbc.sql("SELECT " + VIEW_COLUMNS + " FROM guide_request g JOIN security s ON s.id = g.security_id"
-                        + " WHERE g.id = :id")
+                        + " WHERE g.id = :id AND g.user_id = :userId")
                 .param("id", id)
+                .param("userId", userId.value())
                 .query(this::view)
                 .optional();
     }

@@ -9,6 +9,7 @@ import com.stockmanagement.guide.domain.GuideQuota;
 import com.stockmanagement.guide.domain.GuideRequest;
 import com.stockmanagement.market.domain.TradingStatus;
 import com.stockmanagement.portfolio.domain.HoldingValuation;
+import com.stockmanagement.user.domain.UserId;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -35,10 +36,10 @@ public class GuideService {
         this.clock = clock;
     }
 
-    public GuideRequestResult request(long holdingId) {
-        GuideTarget target =
-                store.findTarget(holdingId).orElseThrow(() -> new ResourceNotFoundException("holding", holdingId));
-        Optional<AiProvider> provider = credentials.selectedProvider();
+    public GuideRequestResult request(UserId userId, long holdingId) {
+        GuideTarget target = store.findTarget(userId, holdingId)
+                .orElseThrow(() -> new ResourceNotFoundException("holding", holdingId));
+        Optional<AiProvider> provider = credentials.selectedProvider(userId);
         if (provider.isEmpty()) {
             return new GuideRequestResult.NoCredential();
         }
@@ -53,11 +54,11 @@ public class GuideService {
         }
         Instant now = clock.instant();
         LocalDate usageDate = GuideRequest.usageDateOf(now);
-        OptionalLong pending = store.findPending(target.securityId(), usageDate);
+        OptionalLong pending = store.findPending(userId, target.securityId(), usageDate);
         if (pending.isPresent()) {
             return new GuideRequestResult.Accepted(pending.getAsLong());
         }
-        OptionalLong reserved = store.reserve(reservation(target, provider.get(), usageDate, now));
+        OptionalLong reserved = store.reserve(reservation(userId, target, provider.get(), usageDate, now));
         if (reserved.isEmpty()) {
             return new GuideRequestResult.QuotaExhausted(GuideQuota.resetsAt(usageDate));
         }
@@ -66,19 +67,20 @@ public class GuideService {
     }
 
     /** 오늘(KST) 이 종목의 한도 사용 현황. */
-    public GuideQuota quota(long securityId) {
-        return new GuideQuota(store.countActive(securityId, KstDate.today(clock)));
+    public GuideQuota quota(UserId userId, long securityId) {
+        return new GuideQuota(store.countActive(userId, securityId, KstDate.today(clock)));
     }
 
-    public Optional<GuideView> find(long guideId) {
-        return store.find(guideId);
+    public Optional<GuideView> find(UserId userId, long guideId) {
+        return store.find(userId, guideId);
     }
 
     private static GuideReservation reservation(
-            GuideTarget target, AiProvider provider, LocalDate usageDate, Instant now) {
+            UserId userId, GuideTarget target, AiProvider provider, LocalDate usageDate, Instant now) {
         HoldingValuation valuation =
                 HoldingValuation.of(target.avgPrice(), target.quantity(), target.price(), target.currency());
         return new GuideReservation(
+                userId,
                 target.securityId(),
                 target.holdingId(),
                 target.accountId(),

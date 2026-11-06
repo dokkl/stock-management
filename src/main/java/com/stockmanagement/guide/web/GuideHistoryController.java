@@ -2,6 +2,8 @@ package com.stockmanagement.guide.web;
 
 import com.stockmanagement.common.error.ResourceNotFoundException;
 import com.stockmanagement.guide.application.port.GuideHistoryQuery;
+import com.stockmanagement.user.domain.UserId;
+import com.stockmanagement.user.web.CurrentUser;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,10 +21,14 @@ class GuideHistoryController {
     }
 
     @GetMapping("/securities/{id}/guides")
-    String history(@PathVariable long id, @RequestParam(defaultValue = "0") int page, Model model) {
+    String history(
+            @CurrentUser UserId userId,
+            @PathVariable long id,
+            @RequestParam(defaultValue = "0") int page,
+            Model model) {
         model.addAttribute(
                 "history",
-                historyQuery.find(id, page).orElseThrow(() -> new ResourceNotFoundException("security", id)));
+                historyQuery.find(userId, id, page).orElseThrow(() -> new ResourceNotFoundException("security", id)));
         return "guide/history";
     }
 }

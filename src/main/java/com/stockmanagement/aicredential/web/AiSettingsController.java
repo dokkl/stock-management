@@ -6,6 +6,8 @@ import com.stockmanagement.aicredential.application.CredentialService;
 import com.stockmanagement.aicredential.domain.AiProvider;
 import com.stockmanagement.common.domain.DomainValidationException;
 import com.stockmanagement.common.error.ResourceNotFoundException;
+import com.stockmanagement.user.domain.UserId;
+import com.stockmanagement.user.web.CurrentUser;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.Arrays;
 import org.springframework.http.HttpStatus;
@@ -34,20 +36,21 @@ class AiSettingsController {
     }
 
     @GetMapping("/settings/ai")
-    String page(Model model) {
-        model.addAttribute("settings", credentialService.settings());
+    String page(@CurrentUser UserId userId, Model model) {
+        model.addAttribute("settings", credentialService.settings(userId));
         return PAGE;
     }
 
     @PutMapping("/settings/ai/credentials/{provider}")
     String register(
+            @CurrentUser UserId userId,
             @PathVariable String provider,
             @RequestParam(defaultValue = "") String apiKey,
             Model model,
             HttpServletResponse response) {
         AiProvider target = parse(provider);
         try {
-            credentialService.register(target, apiKey);
+            credentialService.register(userId, target, apiKey);
             toast(model, "settings.ai.saved");
         } catch (DomainValidationException e) {
             keyError(model, response, target, e.getMessageKey(), HttpStatus.UNPROCESSABLE_CONTENT);
@@ -56,30 +59,34 @@ class AiSettingsController {
         } catch (CredentialCheckUnavailableException e) {
             keyError(model, response, target, "ai.key.unavailable", HttpStatus.SERVICE_UNAVAILABLE);
         }
-        return panel(model);
+        return panel(userId, model);
     }
 
     @DeleteMapping("/settings/ai/credentials/{provider}")
-    String delete(@PathVariable String provider, Model model) {
-        credentialService.delete(parse(provider));
+    String delete(@CurrentUser UserId userId, @PathVariable String provider, Model model) {
+        credentialService.delete(userId, parse(provider));
         toast(model, "settings.ai.deleted");
-        return panel(model);
+        return panel(userId, model);
     }
 
     @PutMapping("/settings/ai/selection")
-    String select(@RequestParam(defaultValue = "") String provider, Model model, HttpServletResponse response) {
+    String select(
+            @CurrentUser UserId userId,
+            @RequestParam(defaultValue = "") String provider,
+            Model model,
+            HttpServletResponse response) {
         try {
-            credentialService.select(parseSelection(provider));
+            credentialService.select(userId, parseSelection(provider));
             toast(model, "settings.ai.selectionSaved");
         } catch (DomainValidationException e) {
             response.setStatus(HttpStatus.UNPROCESSABLE_CONTENT.value());
             model.addAttribute("selectionErrorKey", e.getMessageKey());
         }
-        return panel(model);
+        return panel(userId, model);
     }
 
-    private String panel(Model model) {
-        model.addAttribute("settings", credentialService.settings());
+    private String panel(UserId userId, Model model) {
+        model.addAttribute("settings", credentialService.settings(userId));
         return PANEL;
     }
 

@@ -5,6 +5,8 @@ import com.stockmanagement.guide.application.GuideRequestResult;
 import com.stockmanagement.guide.application.GuideService;
 import com.stockmanagement.guide.application.GuideView;
 import com.stockmanagement.portfolio.application.DashboardQuery;
+import com.stockmanagement.user.domain.UserId;
+import com.stockmanagement.user.web.CurrentUser;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.Clock;
@@ -36,10 +38,15 @@ class GuideController {
     }
 
     @PostMapping("/holdings/{id}/guides")
-    String request(@PathVariable long id, Model model, HttpServletRequest request, HttpServletResponse response) {
-        return switch (guideService.request(id)) {
+    String request(
+            @CurrentUser UserId userId,
+            @PathVariable long id,
+            Model model,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+        return switch (guideService.request(userId, id)) {
             case GuideRequestResult.Accepted accepted -> {
-                GuideView guide = requireGuide(accepted.guideId());
+                GuideView guide = requireGuide(userId, accepted.guideId());
                 response.setStatus(HttpStatus.ACCEPTED.value());
                 quotaChanged(response, guide.securityId());
                 progress(model, guide);
@@ -65,8 +72,8 @@ class GuideController {
 
     /** 진행 중이면 204: 진행 카드(애니메이션)를 그대로 두고 폴링만 계속한다. 끝나면 결과·실패 카드로 바꾼다. */
     @GetMapping("/guides/{id}/status")
-    String status(@PathVariable long id, Model model, HttpServletResponse response) {
-        GuideView guide = requireGuide(id);
+    String status(@CurrentUser UserId userId, @PathVariable long id, Model model, HttpServletResponse response) {
+        GuideView guide = requireGuide(userId, id);
         if (guide.isPending()) {
             response.setStatus(HttpStatus.NO_CONTENT.value());
             return "guide/progress :: none";
@@ -77,8 +84,8 @@ class GuideController {
     }
 
     @GetMapping("/guides/{id}")
-    String detail(@PathVariable long id, Model model) {
-        progress(model, requireGuide(id));
+    String detail(@CurrentUser UserId userId, @PathVariable long id, Model model) {
+        progress(model, requireGuide(userId, id));
         return "guide/detail";
     }
 
@@ -94,15 +101,15 @@ class GuideController {
 
     /** 가이드 버튼(남은 횟수) 다시 그리기. */
     @GetMapping("/holdings/{id}/guide-button")
-    String button(@PathVariable long id, Model model) {
+    String button(@CurrentUser UserId userId, @PathVariable long id, Model model) {
         model.addAttribute(
                 "holding",
-                dashboardQuery.findHolding(id).orElseThrow(() -> new ResourceNotFoundException("holding", id)));
+                dashboardQuery.findHolding(userId, id).orElseThrow(() -> new ResourceNotFoundException("holding", id)));
         return "guide/button :: button-only";
     }
 
-    private GuideView requireGuide(long id) {
-        return guideService.find(id).orElseThrow(() -> new ResourceNotFoundException("guide", id));
+    private GuideView requireGuide(UserId userId, long id) {
+        return guideService.find(userId, id).orElseThrow(() -> new ResourceNotFoundException("guide", id));
     }
 
     /** 공통 이벤트와 종목별 이벤트를 함께 보낸다. 버튼은 자기 종목 이벤트만 듣는다(같은 종목의 다른 계좌 행 포함). */

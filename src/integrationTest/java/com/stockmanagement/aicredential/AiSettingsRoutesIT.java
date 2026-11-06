@@ -53,7 +53,7 @@ class AiSettingsRoutesIT extends IntegrationTestBase {
     }
 
     private String selected() {
-        return jdbc.sql("SELECT selected_ai_provider FROM owner")
+        return jdbc.sql("SELECT selected_ai_provider FROM app_user")
                 .query(String.class)
                 .single();
     }
@@ -170,7 +170,7 @@ class AiSettingsRoutesIT extends IntegrationTestBase {
 
         mockMvc.perform(delete("/settings/ai/credentials/OPENAI").with(owner()).with(csrf()))
                 .andExpect(status().isOk());
-        assertThat(jdbc.sql("SELECT selected_ai_provider FROM owner")
+        assertThat(jdbc.sql("SELECT selected_ai_provider FROM app_user")
                         .query(String.class)
                         .optional())
                 .isEmpty();

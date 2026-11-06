@@ -190,3 +190,18 @@ h2 { font-size: var(--font-size-lg); margin: 0; }
 .guide-snapshot dd { margin: 0; font-weight: var(--font-weight-bold); }
 .pagination { display: flex; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-4); }
 .guide-history-link { font-size: var(--font-size-sm); }
+
+/* 카카오 로그인 */
+.login { display: flex; flex-direction: column; gap: var(--space-4); }
+.btn-kakao { justify-content: center; background: var(--color-kakao); border-color: var(--color-kakao); color: var(--color-kakao-text); font-weight: var(--font-weight-bold); padding: var(--space-3) var(--space-4); }
+.btn-kakao:hover { filter: brightness(0.96); }
+.login-note { font-size: var(--font-size-sm); margin: 0; }
+.nav-user { color: var(--color-text); font-weight: var(--font-weight-bold); }
+
+/* 회원 정보 */
+.account-info { display: grid; gap: var(--space-2); margin: 0 0 var(--space-5); }
+.account-info div { display: flex; gap: var(--space-3); }
+.account-info dt { color: var(--color-text-muted); min-width: 6rem; }
+.account-info dd { margin: 0; }
+.danger-zone { border: 1px solid var(--color-danger); border-radius: var(--radius-md); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+.danger-zone p { margin: 0; }

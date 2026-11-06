@@ -23,11 +23,21 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-stock}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-stock}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-stock}
+      # 성능 측정 시 카카오 대역으로 돌린다: APP_KAKAO_AUTH_BASE_URL=http://kakao-stub:8080 등
+      APP_KAKAO_AUTH_BASE_URL: ${APP_KAKAO_AUTH_BASE_URL:-https://kauth.kakao.com}
+      APP_KAKAO_API_BASE_URL: ${APP_KAKAO_API_BASE_URL:-https://kapi.kakao.com}
     depends_on:
       db:
         condition: service_healthy
     ports:
       - "8080:8080"
+
+  kakao-stub:
+    image: wiremock/wiremock:3.13.2
+    profiles: [perf]
+    command: ["--port", "8080", "--global-response-templating"]
+    volumes:
+      - ./perf/kakao-stub:/home/wiremock
 
   k6:
     image: grafana/k6

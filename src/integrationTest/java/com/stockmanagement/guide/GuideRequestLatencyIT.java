@@ -38,7 +38,7 @@ class GuideRequestLatencyIT extends IntegrationTestBase {
         long apple = g.fixtures().apple();
         long warmUpHolding = g.fixtures().holding(g.account, apple, "185.2", "1");
         g.fixtures().quote(apple, "187.50", "190.00", "OPEN", clock.instant());
-        GuideFixture.storeOpenAiKey(credentialStore, cipher, clock.instant());
+        GuideFixture.storeOpenAiKey(credentialStore, cipher, clock.instant(), createOwner());
         GuideFixture.stubMarket(WIREMOCK);
         new AiStubs(WIREMOCK).openAiGuide(AiStubs.GUIDE_JSON, "gpt-5", 10_000);
         post(warmUpHolding); // JIT·템플릿 캐시 예열

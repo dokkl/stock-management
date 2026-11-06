@@ -1,6 +1,8 @@
 package com.stockmanagement.portfolio.web;
 
 import com.stockmanagement.portfolio.application.DashboardQuery;
+import com.stockmanagement.user.domain.UserId;
+import com.stockmanagement.user.web.CurrentUser;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,8 +21,8 @@ class QuoteFragmentController {
     }
 
     @GetMapping("/fragments/quotes")
-    String quotes(Model model) {
-        model.addAttribute("dashboard", dashboardQuery.load());
+    String quotes(@CurrentUser UserId userId, Model model) {
+        model.addAttribute("dashboard", dashboardQuery.load(userId));
         return "fragments/quote-cell :: quotes";
     }
 }

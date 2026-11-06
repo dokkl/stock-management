@@ -34,7 +34,7 @@ class DashboardQueryIT extends IntegrationTestBase {
         f.holding(kiwoom, f.samsung(), "71500", "10");
         f.holding(mirae, f.apple(), "185.2", "0.35");
 
-        DashboardView view = dashboardQuery.load();
+        DashboardView view = dashboardQuery.load(createOwner());
 
         assertThat(view.accounts())
                 .extracting(DashboardView.AccountView::name)
@@ -54,7 +54,7 @@ class DashboardQueryIT extends IntegrationTestBase {
         jdbc.sql("UPDATE account SET deleted_at = now() WHERE id = :id")
                 .param("id", id)
                 .update();
-        assertThat(dashboardQuery.load().accounts()).isEmpty();
+        assertThat(dashboardQuery.load(createOwner()).accounts()).isEmpty();
     }
 
     @Test
@@ -65,7 +65,7 @@ class DashboardQueryIT extends IntegrationTestBase {
         f.manyHoldings(first, 20);
         queryCounter.reset();
 
-        DashboardView view = dashboardQuery.load();
+        DashboardView view = dashboardQuery.load(createOwner());
 
         assertThat(view.totalHoldings()).isEqualTo(20);
         assertThat(queryCounter.count()).isLessThanOrEqualTo(2);
