@@ -85,6 +85,17 @@ app:
     models:
       anthropic: claude-sonnet-5-5
       openai: gpt-5
+  indicator:
+    # 003: 국내 지표는 장중 1분, 장 외 30분마다 갱신. 장중 10분 넘게 못 받으면 "지연"
+    stale-after: 10m
+    closed-interval: 30m
+    domestic-check-interval: 1m
+    global-interval: 1h
+  fred:
+    # 003: 미국 지수·WTI·VIX(FRED, 일별 종가). 키가 비어 있으면 갱신하지 않는다
+    base-url: ${FRED_BASE_URL:https://api.stlouisfed.org}
+    api-key: ${FRED_API_KEY:}
+    timeout: 10s
   quote:
     refresh-interval: 30s
     stale-after: 1m

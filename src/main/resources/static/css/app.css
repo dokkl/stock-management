@@ -26,6 +26,12 @@ a { color: var(--color-primary); }
 .site-nav form { margin: 0; }
 
 main { max-width: 1100px; margin: 0 auto; padding: var(--space-5); }
+
+.site-footer {
+  border-top: 1px solid var(--color-border); padding: var(--space-4) var(--space-5);
+  text-align: center; font-size: var(--font-size-sm); color: var(--color-text-muted);
+}
+.site-footer p { margin: 0; }
 .narrow { max-width: 420px; }
 
 h1 { font-size: var(--font-size-xl); margin: 0 0 var(--space-4); }
@@ -103,6 +109,23 @@ h2 { font-size: var(--font-size-lg); margin: 0; }
 .holdings thead th { background: var(--color-card); }
 .holdings tbody tr:hover { background: var(--color-row-hover); }
 .security-code { color: var(--color-text-muted); font-size: var(--font-size-sm); margin-left: var(--space-1); }
+
+/* 003 시장 지표 */
+.market-indicators { margin-bottom: var(--space-5); }
+.indicator-list {
+  list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2);
+  grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+}
+.indicator-card {
+  display: flex; flex-direction: column; gap: 2px; padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-card);
+}
+.indicator-name { font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.indicator-value { font-weight: var(--font-weight-bold); white-space: nowrap; }
+.indicator-unit { margin-left: 2px; font-weight: normal; font-size: var(--font-size-sm); }
+.indicator-change { font-size: var(--font-size-sm); white-space: nowrap; }
+.indicator-basis { font-size: var(--font-size-sm); color: var(--color-text-muted); white-space: nowrap; }
+.indicator-source { margin: var(--space-2) 0 0; font-size: var(--font-size-sm); color: var(--color-text-muted); }
 
 /* 종목 글자 아이콘 + 국가 국기 */
 .security-ident { display: inline-flex; align-items: center; gap: var(--space-3); }
@@ -309,6 +332,7 @@ h2 { font-size: var(--font-size-lg); margin: 0; }
   .guide-drawer[open] { animation: drawer-in-up 0.22s ease-out; }
   .toast-region { left: var(--space-3); right: var(--space-3); }
   .guide-snapshot { grid-template-columns: repeat(2, 1fr); }
+  .indicator-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pagination { flex-direction: column; }
 }
 

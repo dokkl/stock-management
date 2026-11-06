@@ -10,6 +10,12 @@
         <form th:replace="~{portfolio/account-create-form :: create-form(false)}"></form>
     </div>
 
+    <!-- 시장 지표(003): 처음 불러온 뒤 영역이 60초마다 자신을 다시 받는다 -->
+    <section id="market-indicators" class="market-indicators" th:aria-label="#{indicator.region}"
+             th:hx-get="@{/fragments/indicators}" hx-trigger="load, every 60s" hx-swap="outerHTML">
+        <p th:replace="~{fragments/states :: loading}"></p>
+    </section>
+
     <!-- 시세 셀 갱신(FR-012): 30초마다 받아 OOB로 교체한다. 본문은 바꾸지 않는다. -->
     <div id="quote-poller" th:hx-get="@{/fragments/quotes}" hx-trigger="every 30s" hx-swap="none"></div>
 
@@ -22,6 +28,7 @@
         </th:block>
     </div>
 </main>
+<footer th:replace="~{layout :: footer}"></footer>
 
 <!--
   AI 가이드 서랍 패널: 데스크톱은 오른쪽, 모바일은 아래에서 올라오는 시트. 가이드 버튼의 hx-target(#guide-panel)이 안에

@@ -25,6 +25,14 @@ class AccountRoutesIT extends IntegrationTestBase {
     }
 
     @Test
+    void dashboardShowsCopyrightFooter() throws Exception {
+        mockMvc.perform(get("/").with(owner()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("<footer class=\"site-footer\"")))
+                .andExpect(content().string(containsString("ⓒ 2026. hoon All rights reserved.")));
+    }
+
+    @Test
     void createsAccount() throws Exception {
         mockMvc.perform(post("/accounts")
                         .param("name", "키움 일반")

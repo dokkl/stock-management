@@ -66,6 +66,12 @@ variable "github_repository" {
   default     = "dokkl/stock-management"
 }
 
+variable "github_repository_immutable" {
+  description = "OIDC immutable subject 형식의 저장소(owner@ownerId/repo@repoId). gh api repos/OWNER/REPO/actions/oidc/customization/sub의 sub_claim_prefix에서 repo: 뒤"
+  type        = string
+  default     = "dokkl@7077174/stock-management@1446570656"
+}
+
 variable "github_environment" {
   description = "배포 잡의 GitHub Environment. 이 환경의 잡만 배포 역할을 맡을 수 있다."
   type        = string

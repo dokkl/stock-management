@@ -74,6 +74,7 @@ put KAKAO_ADMIN_KEY     '...'
 put TOSS_CLIENT_ID      '...'
 put TOSS_CLIENT_SECRET  '...'
 put ADMIN_KAKAO_IDS     '...'                           # 관리자 카카오 회원번호. 첫 배포 전에 넣는다
+put FRED_API_KEY        '...'                           # 미국 지수·WTI·VIX(FRED). 없으면 EMPTY
 ```
 
 DB 접속 정보(`SPRING_DATASOURCE_*`)는 Terraform이 넣는다. 값을 바꾼 뒤에는 Deploy 워크플로를 다시 실행해야 반영된다.

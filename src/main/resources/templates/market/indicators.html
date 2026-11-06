@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  대시보드 시장 지표(003). 대시보드의 자리표시자가 처음 불러오고(load), 이 영역이 60초마다 자신을 다시 받는다.
+  등락은 색과 ▲/▼/– 기호를 함께 쓰고 화면 낭독기용 "상승/하락/보합"을 숨김 텍스트로 넣는다.
+-->
+<section th:fragment="indicators" id="market-indicators" class="market-indicators" th:aria-label="#{indicator.region}"
+         th:hx-get="@{/fragments/indicators}" hx-trigger="every 60s" hx-swap="outerHTML">
+    <th:block th:if="${indicatorError}">
+        <div th:replace="~{fragments/states :: error('indicator.error')}"></div>
+    </th:block>
+    <th:block th:if="${!indicatorError and board.isEmpty()}">
+        <div th:replace="~{fragments/states :: empty('indicator.empty')}"></div>
+    </th:block>
+    <th:block th:if="${!indicatorError and !board.isEmpty()}">
+        <ul class="indicator-list">
+            <li th:each="c : ${board.cards()}" class="indicator-card"
+                th:with="q=${c.quote()}, code=${c.indicator().name()}">
+                <span class="indicator-name" th:text="#{'indicator.name.' + ${code}}">코스피</span>
+                <th:block th:if="${c.hasQuote()}" th:with="dir=${q.direction().name()}">
+                    <span class="indicator-value">
+                        <span th:text="${#money.indicator(q.value())}">2,812.45</span>
+                        <span class="indicator-unit" th:text="#{'indicator.unit.' + ${c.indicator().unit().name()}}"></span>
+                    </span>
+                    <span th:if="${q.hasChange()}" th:class="'indicator-change ' + ${#strings.toLowerCase(dir)}">
+                        <span class="visually-hidden" th:text="#{'portfolio.direction.' + ${dir}}">상승</span>
+                        <span th:text="${#money.indicatorChange(q.change(), q.changeRate())}">▲ 22.35 (+0.80%)</span>
+                    </span>
+                    <span class="indicator-basis" th:switch="${c.status().name()}">
+                        <th:block th:case="'LIVE'" th:text="#{indicator.basis.live(${#money.shortTime(q.asOf())})}">13:20 기준</th:block>
+                        <th:block th:case="'STALE'" th:text="#{indicator.basis.stale(${#money.shortTime(q.asOf())})}">지연 (13:20 기준)</th:block>
+                        <th:block th:case="'CLOSED'" th:text="#{indicator.basis.closed(${#money.monthDayTime(q.asOf())})}">장 마감 (11-05 15:30)</th:block>
+                        <th:block th:case="*" th:text="#{indicator.basis.daily(${#money.monthDay(q.asOfDate())})}">11-04 종가</th:block>
+                    </span>
+                </th:block>
+                <span th:unless="${c.hasQuote()}" class="indicator-basis" th:text="#{indicator.unavailable}">정보 없음</span>
+            </li>
+        </ul>
+        <p th:if="${board.hasGlobal()}" class="indicator-source" th:text="#{indicator.source}">출처</p>
+    </th:block>
+</section>
+</body>
+</html>
