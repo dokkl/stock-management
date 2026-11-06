@@ -3,13 +3,15 @@
 <body>
 <!--
   공용 폼 필드. 오류는 모델의 errorField(필드 이름)와 errorKey(메시지 키)로 표시한다.
-  id: 페이지에서 유일한 id, name: 폼 필드 이름, inputmode: text|decimal|numeric
+  id: 페이지에서 유일한 id, name: 폼 필드 이름, inputmode: text|decimal|numeric,
+  placeholder: 입력 예시(입력하면 사라진다, 없으면 null), thousands: true면 입력 중 천 단위 콤마 자동 삽입(app.js)
 -->
-<div th:fragment="field(id, name, label, type, value, inputmode, hint)" class="field"
+<div th:fragment="field(id, name, label, type, value, inputmode, hint, placeholder, thousands)" class="field"
      th:with="hasError=${errorField != null and errorField == name}">
     <label th:for="${id}" th:text="${label}">라벨</label>
     <input th:id="${id}" th:name="${name}" th:type="${type}" th:value="${value}"
-           th:attr="inputmode=${inputmode},aria-invalid=${hasError ? 'true' : null},aria-describedby=${hasError ? id + '-error' : (hint != null ? id + '-hint' : null)}"
+           th:attr="inputmode=${inputmode},aria-invalid=${hasError ? 'true' : null},aria-describedby=${hasError ? id + '-error' : (hint != null ? id + '-hint' : null)},
+                    placeholder=${placeholder},data-thousands=${thousands ? 'true' : null}"
            required>
     <p th:if="${hint != null and !hasError}" th:id="${id} + '-hint'" class="field-hint" th:text="${hint}">힌트</p>
     <p th:if="${hasError}" th:id="${id} + '-error'" class="field-error" role="alert" th:text="#{${errorKey}(${errorArg})}">오류</p>

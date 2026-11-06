@@ -23,8 +23,11 @@
         </svg>
         <span th:text="${h.guidePending()} ? #{guide.button.pending} : #{guide.button(${remaining})}">가이드 (남은 2회)</span>
     </button>
-    <a class="guide-history-link" th:href="@{/securities/{id}/guides(id=${h.securityId})}"
-       th:aria-label="#{guide.history.link.label(${h.name})}" th:text="#{guide.history.link}">기록</a>
+    <a class="btn btn-sm btn-ghost" th:href="@{/securities/{id}/guides(id=${h.securityId})}"
+       th:aria-label="#{guide.history.link.label(${h.name})}">
+        <svg th:replace="~{fragments/icon :: icon('history')}"></svg>
+        <span th:text="#{guide.history.link}">기록</span>
+    </a>
     <span th:if="${h.guideDisabled() and !h.guidePending()}" th:id="${reasonId}" class="guide-reason">
         <th:block th:if="${h.tradingStatus.name() == 'ACTIVE'}" th:text="#{guide.quota.resetsAt}">내일 00:00 (KST) 초기화</th:block>
         <th:block th:unless="${h.tradingStatus.name() == 'ACTIVE'}" th:text="#{'guide.unavailable.' + ${h.tradingStatus.name()}}">거래정지</th:block>

@@ -6,7 +6,7 @@
       th:action="@{/accounts}" method="post"
       th:hx-post="@{/accounts}" hx-target="#accounts" hx-swap="beforeend"
       th:attr="hx-swap-oob=${oob ? 'true' : null}">
-    <div th:replace="~{fragments/field :: field('account-name', 'name', #{portfolio.account.newName}, 'text', ${oob ? '' : accountNameValue}, null, null)}"></div>
+    <div th:replace="~{fragments/field :: field('account-name', 'name', #{portfolio.account.newName}, 'text', ${oob ? '' : accountNameValue}, null, null, #{portfolio.account.namePlaceholder}, false)}"></div>
     <button th:replace="~{fragments/button :: button(#{portfolio.account.add}, 'primary', 'submit')}"></button>
 </form>
 
