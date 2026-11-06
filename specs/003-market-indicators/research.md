@@ -46,3 +46,14 @@
 
 - **Decision**: 토스 호출은 기존 `TossHttpClient`(고정 IP 프록시 `TOSS_PROXY_URL`)를 그대로 쓴다. FRED는 별도 `RestClient`로 직접
   호출한다(프록시는 토스 도메인만 허용). FRED API 키는 `FRED_API_KEY`(SSM SecureString, 로그·화면 비노출).
+
+## R3-개정. 최신 종가 제공처 (2026-11-06)
+
+- **문제**: FRED는 시리즈마다 발표가 늦다(S&P 500 다음 날 오후, VIX 다음 날 아침, WTI는 미국 에너지청 기준 1~2 영업일 지연).
+  사용자가 "모두 최신 정보"를 요구했다.
+- **Decision**: 미국 지표마다 여러 제공처를 조회해 **가장 최신 날짜**의 관측치를 쓴다(같은 날짜면 우선순위가 앞선 제공처).
+  - S&P 500·VIX: Cboe 공식 일별 종가 CSV(`https://cdn-api.cboe.com/api/global/us_indices/daily_prices/{SPX|VIX}_History.csv`, 장 마감 당일 저녁 갱신, 키 불필요).
+  - WTI: 야후 파이낸스 차트 API 근월물 선물 `CL=F`(비공식, 거의 실시간). 실패하면 FRED 현물가(`DCOILWTICO`)로 대체.
+  - 나스닥 종합·다우: FRED가 당일 밤에 갱신되어 그대로 쓴다(다른 제공처에서도 FRED가 대체로 남는다).
+- **Alternatives**: Stooq CSV — API 제거·브라우저 검증으로 사용 불가. Cboe의 나스닥 종합(COMP) 파일 — 접근 거부(403).
+- **위험**: 야후 API는 비공식이라 차단·형식 변경 가능 → FRED 대체로 화면은 유지된다(기준일만 늦어짐).

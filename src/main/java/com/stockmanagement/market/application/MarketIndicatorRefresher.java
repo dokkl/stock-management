@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -29,7 +30,7 @@ import org.springframework.stereotype.Component;
  *
  * <ul>
  *   <li>국내 지수·환율: 국내 장중 1분마다, 장 외에는 closedInterval마다. 전일 값은 같은 날이면 저장된 값을 다시 쓴다.
- *   <li>미국 지표(FRED): globalInterval마다.
+ *   <li>미국 지표: globalInterval마다. 제공처(Cboe·야후·FRED) 중 가장 최신 날짜를 쓴다.
  * </ul>
  * 한 지표가 실패해도 나머지는 저장하고, 실패한 지표의 기존 값은 그대로 둔다.
  */
@@ -42,7 +43,7 @@ public class MarketIndicatorRefresher {
     static final LocalTime FX_REFERENCE_TIME = LocalTime.of(15, 30);
 
     private final DomesticIndicatorSource domestic;
-    private final GlobalIndicatorSource global;
+    private final List<GlobalIndicatorSource> globals;
     private final IndicatorStore store;
     private final MarketCalendarCache calendars;
     private final IndicatorProperties properties;
@@ -51,13 +52,13 @@ public class MarketIndicatorRefresher {
 
     public MarketIndicatorRefresher(
             DomesticIndicatorSource domestic,
-            GlobalIndicatorSource global,
+            List<GlobalIndicatorSource> globals,
             IndicatorStore store,
             MarketCalendarCache calendars,
             IndicatorProperties properties,
             Clock clock) {
         this.domestic = domestic;
-        this.global = global;
+        this.globals = globals;
         this.store = store;
         this.calendars = calendars;
         this.properties = properties;
@@ -82,7 +83,7 @@ public class MarketIndicatorRefresher {
                                 existing.get(index),
                                 sessionDate,
                                 () -> domestic.previousIndexClose(index, sessionDate)),
-                        reading.asOf(),
+                        reading.asOf() != null ? reading.asOf() : fallbackAsOf(calendar.get(), now),
                         sessionDate,
                         now)));
         LocalDate today = KstDate.today(clock);
@@ -108,7 +109,7 @@ public class MarketIndicatorRefresher {
             if (indicator.isRealtime()) {
                 continue;
             }
-            global.latest(indicator)
+            latestAcross(indicator)
                     .ifPresent(o -> save(new IndicatorQuote(
                             indicator,
                             o.value(),
@@ -117,6 +118,27 @@ public class MarketIndicatorRefresher {
                             o.date(),
                             now)));
         }
+    }
+
+    /**
+     * 제공처 중 가장 최신 날짜의 관측치. 같은 날짜면 우선순위(@Order)가 앞선 제공처. Cboe·야후가 실패하거나 늦으면 FRED가 쓰인다.
+     */
+    private Optional<DailyObservation> latestAcross(MarketIndicator indicator) {
+        DailyObservation best = null;
+        for (GlobalIndicatorSource source : globals) {
+            Optional<DailyObservation> found = source.latest(indicator);
+            if (found.isPresent() && (best == null || found.get().date().isAfter(best.date()))) {
+                best = found.get();
+            }
+        }
+        return Optional.ofNullable(best);
+    }
+
+    /** 기준 시각을 받지 못했을 때(장 마감 후 토스는 null을 준다): 마감 뒤에는 정규장 종료 시각, 그 밖에는 받은 시각. */
+    private static Instant fallbackAsOf(MarketCalendar calendar, Instant now) {
+        return calendar.state(now) == MarketState.CLOSED && calendar.regularClose() != null
+                ? calendar.regularClose()
+                : now;
     }
 
     /** 장중이면 매번, 장 외에는 closedInterval이 지났을 때만. */

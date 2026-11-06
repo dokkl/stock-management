@@ -12,6 +12,8 @@ import com.stockmanagement.market.application.port.GlobalIndicatorSource;
 import com.stockmanagement.market.domain.MarketIndicator;
 import com.stockmanagement.support.IntegrationTestBase;
 import java.time.LocalDate;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +25,17 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 class FredIndicatorSourceIT extends IntegrationTestBase {
 
     @Autowired
+    private List<GlobalIndicatorSource> sources;
+
     private GlobalIndicatorSource source;
+
+    @BeforeEach
+    void pickFred() {
+        source = sources.stream()
+                .filter(s -> s.getClass().getSimpleName().startsWith("Fred"))
+                .findFirst()
+                .orElseThrow();
+    }
 
     @Test
     void latestSkipsMissingValues() {

@@ -45,7 +45,10 @@ class TossIndicatorSource implements DomesticIndicatorSource {
         this.tokenStore = tokenStore;
     }
 
-    /** GET /api/v1/market-indicators/prices?symbols=KOSPI,KOSDAQ (MARKET_INDICATOR). timestamp가 null이면 미제공. */
+    /**
+     * GET /api/v1/market-indicators/prices?symbols=KOSPI,KOSDAQ (MARKET_INDICATOR). 장 마감 후에는 timestamp가 null이고
+     * lastPrice(종가)만 온다. 그때 기준 시각은 비워 두고 갱신기가 정한다. 값이 0 이하이면 미제공으로 본다.
+     */
     @Override
     public Map<MarketIndicator, IndicatorReading> currentIndices() {
         Map<MarketIndicator, IndicatorReading> result = new EnumMap<>(MarketIndicator.class);
@@ -60,11 +63,13 @@ class TossIndicatorSource implements DomesticIndicatorSource {
                                 PRICES)))
                 .orElse(List.of())
                 .stream()
-                .filter(p -> p.timestamp() != null && INDEX_SYMBOLS.containsKey(p.symbol()))
+                .filter(p -> INDEX_SYMBOLS.containsKey(p.symbol()) && p.lastPrice() != null)
+                .filter(p -> new BigDecimal(p.lastPrice()).signum() > 0)
                 .forEach(p -> result.put(
                         INDEX_SYMBOLS.get(p.symbol()),
                         new IndicatorReading(
-                                new BigDecimal(p.lastPrice()), p.timestamp().toInstant())));
+                                new BigDecimal(p.lastPrice()),
+                                p.timestamp() == null ? null : p.timestamp().toInstant())));
         return result;
     }
 

@@ -127,6 +127,24 @@ class MarketIndicatorRefresherIT extends IntegrationTestBase {
     }
 
     @Test
+    void missingTimestampUsesFetchTimeDuringSessionAndRegularCloseAfterHours() {
+        WIREMOCK.stubFor(get(urlPathEqualTo("/api/v1/market-indicators/prices"))
+                .willReturn(
+                        json("{\"result\":[{\"symbol\":\"KOSPI\",\"timestamp\":null,\"lastPrice\":\"5059.69\"}]}")));
+
+        refresher.refreshDomestic(); // 10:00 KST 장중
+        assertThat(saved().get(MarketIndicator.KOSPI).asOf()).isEqualTo(clock.instant());
+
+        clock.advance(Duration.ofHours(8)); // 18:00 KST 장 마감
+        refresher.resetSchedule();
+        refresher.refreshDomestic();
+        assertThat(saved().get(MarketIndicator.KOSPI).asOf())
+                .as("장 마감 후에는 정규장 종료 시각(15:30 KST)")
+                .isEqualTo(java.time.Instant.parse("2026-11-05T06:30:00Z"));
+        assertThat(saved().get(MarketIndicator.KOSPI).value()).isEqualByComparingTo("5059.69");
+    }
+
+    @Test
     void globalIndicatorsComeFromFredDailyClose() {
         for (String series : new String[] {"NASDAQCOM", "SP500", "DJIA", "DCOILWTICO", "VIXCLS"}) {
             WIREMOCK.stubFor(
@@ -153,6 +171,32 @@ class MarketIndicatorRefresherIT extends IntegrationTestBase {
                 .as("결측(.)을 건너뛴 직전 값")
                 .isEqualByComparingTo("99.5");
         assertThat(saved.get(MarketIndicator.VIX).asOfDate()).isEqualTo(LocalDate.of(2026, 11, 4));
+    }
+
+    @Test
+    void newestDateWinsAcrossSourcesAndFredIsFallback() {
+        for (String series : new String[] {"NASDAQCOM", "SP500", "DJIA", "DCOILWTICO", "VIXCLS"}) {
+            WIREMOCK.stubFor(
+                    get(urlPathEqualTo("/fred/series/observations"))
+                            .withQueryParam("series_id", equalTo(series))
+                            .willReturn(
+                                    json(
+                                            "{\"observations\":[{\"date\":\"2026-11-03\",\"value\":\"50\"},{\"date\":\"2026-11-02\",\"value\":\"49\"}]}")));
+        }
+        WIREMOCK.stubFor(get(urlPathEqualTo("/api/global/us_indices/daily_prices/VIX_History.csv"))
+                .willReturn(aResponse()
+                        .withBody("DATE,OPEN,HIGH,LOW,CLOSE\n11/04/2026,1,1,1,16.61\n11/05/2026,1,1,1,28.18\n")));
+        // SPX(Cboe)는 실패 → FRED 값 사용, WTI(야후) 스텁 없음 → FRED 값 사용
+
+        refresher.refreshGlobal();
+
+        Map<MarketIndicator, IndicatorQuote> saved = saved();
+        assertThat(saved.get(MarketIndicator.VIX).value()).as("더 최신인 Cboe").isEqualByComparingTo("28.18");
+        assertThat(saved.get(MarketIndicator.VIX).asOfDate()).isEqualTo(LocalDate.of(2026, 11, 5));
+        assertThat(saved.get(MarketIndicator.SP500).value())
+                .as("Cboe 실패 시 FRED")
+                .isEqualByComparingTo("50");
+        assertThat(saved.get(MarketIndicator.WTI).value()).as("야후 실패 시 FRED").isEqualByComparingTo("50");
     }
 
     private static void stubCandles(String symbol, String previousClose) {
