@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head(#{account.title})}"></head>
+<body>
+<a class="skip-link" href="#main">본문으로 건너뛰기</a>
+<header th:replace="~{layout :: header}"></header>
+<main id="main" class="narrow">
+    <h1 th:text="#{account.title}">회원 정보</h1>
+    <dl class="account-info">
+        <div><dt th:text="#{account.displayName}">표시 이름</dt><dd th:text="${user.displayName().value()}">홍길동</dd></div>
+        <div><dt th:text="#{account.loginMethod}">로그인 방식</dt><dd th:text="#{account.kakao}">카카오</dd></div>
+        <div><dt th:text="#{account.joinedAt}">가입일</dt><dd th:text="${#money.dateTime(user.createdAt())}">2026-11-05 10:00</dd></div>
+    </dl>
+
+    <section class="danger-zone" aria-labelledby="withdraw-title">
+        <h2 id="withdraw-title" th:text="#{account.withdraw.title}">회원 탈퇴</h2>
+        <p th:text="#{account.withdraw.description}">설명</p>
+        <form th:action="@{/settings/account/withdraw}" method="post"
+              th:hx-post="@{/settings/account/withdraw}" th:hx-confirm="#{account.withdraw.confirm}">
+            <button th:replace="~{fragments/button :: button(#{account.withdraw.submit}, 'danger', 'submit')}"></button>
+        </form>
+    </section>
+</main>
+<th:block th:replace="~{layout :: chrome}"></th:block>
+</body>
+</html>

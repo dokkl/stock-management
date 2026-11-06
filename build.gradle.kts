@@ -35,6 +35,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
     implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
@@ -190,5 +191,6 @@ tasks.check {
 // --- 품질 게이트: 보안 (헌법 Quality Gate 5) ---
 dependencyCheck {
     failBuildOnCVSS = 7.0f
-    nvd.apiKey = System.getenv("NVD_API_KEY")
+    // 키가 없을 때 빈 문자열을 넘기면 NVD가 "Invalid API Key"로 거부한다. 키 없이도(느리게) 돌 수 있도록 있을 때만 설정한다.
+    System.getenv("NVD_API_KEY")?.takeIf { it.isNotBlank() }?.let { nvd.apiKey = it }
 }

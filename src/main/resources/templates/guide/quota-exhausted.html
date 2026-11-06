@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- 한도 소진(FR-018, FR-019): 초기화 시각 안내 -->
+<div th:fragment="quota-exhausted" class="guide-card state-error" role="alert">
+    <p th:text="#{guide.quota.exhausted}">오늘 이 종목의 가이드를 모두 사용했습니다.</p>
+    <p th:text="#{guide.quota.resetsAt}">내일 00:00 (KST) 초기화</p>
+</div>
+</body>
+</html>

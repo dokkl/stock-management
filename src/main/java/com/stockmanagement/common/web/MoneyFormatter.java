@@ -19,6 +19,8 @@ public final class MoneyFormatter {
     private static final String MINUS = "−";
     private static final DateTimeFormatter TIME =
             DateTimeFormatter.ofPattern("HH:mm:ss").withZone(KstDate.ZONE);
+    private static final DateTimeFormatter DATE_TIME =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(KstDate.ZONE);
     private static final DateTimeFormatter SHORT_TIME =
             DateTimeFormatter.ofPattern("HH:mm").withZone(KstDate.ZONE);
 
@@ -48,6 +50,11 @@ public final class MoneyFormatter {
     /** 시세 기준 시각(KST): "14:32:05". */
     public String time(Instant instant) {
         return TIME.format(instant);
+    }
+
+    /** 기록 시각(KST): "2026-11-05 14:32" (헌법 원칙 III 날짜 형식 YYYY-MM-DD). */
+    public String dateTime(Instant instant) {
+        return DATE_TIME.format(instant);
     }
 
     /** 지연 표시용 시각(KST): "14:32". */

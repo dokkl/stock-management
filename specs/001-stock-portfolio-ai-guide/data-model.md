@@ -47,6 +47,7 @@ market_token (독립, 토스증권 토큰 캐시)
 - **이름 유니크**: 삭제되지 않은 계좌끼리만 적용한다(`UNIQUE (name) WHERE deleted_at IS NULL`).
 - **삭제**: `deleted_at`을 설정하고, 그 계좌의 holding을 모두 물리 삭제한다. 가이드 기록은 계좌명을
   스냅샷으로 들고 있으므로 계속 조회할 수 있다.
+- **상한**: 삭제되지 않은 계좌 ≤ 2 (FR-002a, 애플리케이션에서 생성 시 검증, `app.portfolio.max-accounts`)
 
 ## security (종목 마스터)
 
@@ -90,7 +91,7 @@ market_token (독립, 토스증권 토큰 캐시)
   - `unrealizedPnl = marketValue − costBasis`
   - `returnRate = unrealizedPnl / costBasis`, 소수 넷째 자리 반올림(HALF_UP)
   - `direction = sign(unrealizedPnl)`, 값은 `UP` \| `DOWN` \| `FLAT`
-- **상한**: 소유자 전체 holding 행 수 ≤ 500 (FR-003a, 애플리케이션에서 등록 시 검증)
+- **상한**: 소유자 전체 holding 행 수 ≤ 20 (FR-003a, 애플리케이션에서 등록 시 검증, `app.portfolio.max-holdings`)
 
 ## quote (시세)
 
@@ -142,7 +143,7 @@ market_token (독립, 토스증권 토큰 캐시)
 | usage_date | DATE | NOT NULL | 요청 시작 시각의 KST 날짜 |
 | slot | SMALLINT | NOT NULL, 1 \| 2 | 하루 슬롯 |
 | status | VARCHAR(10) | NOT NULL | `PENDING` \| `SUCCEEDED` \| `FAILED` |
-| failure_kind | VARCHAR(20) | NULL | `CREDENTIAL_ERROR` \| `TRANSIENT_ERROR` \| `INVALID_STATE` |
+| failure_kind | VARCHAR(20) | NULL | `CREDENTIAL_ERROR` \| `TRANSIENT_ERROR` \| `INVALID_STATE` \| `OUTPUT_TRUNCATED`(V8, 응답이 출력 한도에서 잘림) |
 | provider | VARCHAR(20) | NOT NULL | 요청 시 사용한 공급자 |
 | model | VARCHAR(80) | NULL | 응답한 모델명 (FR-022) |
 | account_name_snapshot | VARCHAR(30) | NOT NULL | 요청 당시 계좌명 |
@@ -151,7 +152,7 @@ market_token (독립, 토스증권 토큰 캐시)
 | quantity_snapshot | NUMERIC(20,6) | NOT NULL | 요청 당시 수량 |
 | return_rate_snapshot | NUMERIC(9,4) | NOT NULL | 요청 당시 수익률 |
 | currency | CHAR(3) | NOT NULL | |
-| content | JSONB | NULL | 구조화 결과: summary, diagnosis, action, rationale, risks[] |
+| content | JSONB | NULL | 구조화 결과: summary, diagnosis, supplyDemand, issues[], overall, action, rationale, risks[] (supplyDemand·issues·overall은 2026-11-05 추가, 이전 기록에는 없음) |
 | raw_text | TEXT | NULL | 구조화 실패 시 원문 |
 | requested_at | TIMESTAMPTZ | NOT NULL | |
 | completed_at | TIMESTAMPTZ | NULL | |
@@ -169,7 +170,8 @@ market_token (독립, 토스증권 토큰 캐시)
   ```
 
   `SUCCEEDED`와 `FAILED`는 종료 상태다. 종료 상태 행은 수정하지 않는다. 애플리케이션에 업데이트
-  경로를 두지 않고, DB 트리거로도 막는다.
+  경로를 두지 않고, DB 트리거로도 막는다. 단, 보유 종목 삭제 시 FK `ON DELETE SET NULL`이 `holding_id`만
+  비우는 것은 트리거가 허용한다(FR-027 기록 유지).
 - **남은 횟수**: `2 − count(status <> 'FAILED' AND security_id = ? AND usage_date = today_kst)`
 - **스냅샷 원칙**: 보유 종목이나 계좌가 나중에 바뀌어도 기록은 요청 당시 값을 보여준다(US5 시나리오 2).
 

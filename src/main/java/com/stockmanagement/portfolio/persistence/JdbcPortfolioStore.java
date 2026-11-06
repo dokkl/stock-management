@@ -5,6 +5,7 @@ import com.stockmanagement.portfolio.application.HoldingRef;
 import com.stockmanagement.portfolio.application.port.PortfolioStore;
 import com.stockmanagement.portfolio.domain.AccountName;
 import com.stockmanagement.portfolio.domain.HoldingTerms;
+import com.stockmanagement.user.domain.UserId;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Optional;
@@ -12,6 +13,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
+/** 모든 조회·변경에 account.user_id 조건을 붙인다(research R4). holding은 account를 통해 소유된다. */
 @Repository
 class JdbcPortfolioStore implements PortfolioStore {
 
@@ -22,18 +24,24 @@ class JdbcPortfolioStore implements PortfolioStore {
     }
 
     @Override
-    public boolean activeAccountExists(long accountId) {
-        return jdbc.sql("SELECT EXISTS (SELECT 1 FROM account WHERE id = :id AND deleted_at IS NULL)")
+    public boolean activeAccountExists(UserId userId, long accountId) {
+        return jdbc.sql("""
+                        SELECT EXISTS (SELECT 1 FROM account WHERE id = :id AND user_id = :userId AND deleted_at IS NULL)
+                        """)
                 .param("id", accountId)
+                .param("userId", userId.value())
                 .query(Boolean.class)
                 .single();
     }
 
     @Override
-    public long insertAccount(AccountName name, Instant now) {
+    public long insertAccount(UserId userId, AccountName name, Instant now) {
         try {
-            return jdbc.sql(
-                            "INSERT INTO account (name, created_at, updated_at) VALUES (:name, :now, :now) RETURNING id")
+            return jdbc.sql("""
+                            INSERT INTO account (user_id, name, created_at, updated_at)
+                            VALUES (:userId, :name, :now, :now) RETURNING id
+                            """)
+                    .param("userId", userId.value())
                     .param("name", name.value())
                     .param("now", Timestamp.from(now))
                     .query(Long.class)
@@ -44,12 +52,16 @@ class JdbcPortfolioStore implements PortfolioStore {
     }
 
     @Override
-    public boolean renameAccount(long accountId, AccountName name, Instant now) {
+    public boolean renameAccount(UserId userId, long accountId, AccountName name, Instant now) {
         try {
-            return jdbc.sql("UPDATE account SET name = :name, updated_at = :now WHERE id = :id AND deleted_at IS NULL")
+            return jdbc.sql("""
+                                    UPDATE account SET name = :name, updated_at = :now
+                                    WHERE id = :id AND user_id = :userId AND deleted_at IS NULL
+                                    """)
                             .param("name", name.value())
                             .param("now", Timestamp.from(now))
                             .param("id", accountId)
+                            .param("userId", userId.value())
                             .update()
                     == 1;
         } catch (DuplicateKeyException e) {
@@ -58,11 +70,14 @@ class JdbcPortfolioStore implements PortfolioStore {
     }
 
     @Override
-    public boolean softDeleteAccount(long accountId, Instant now) {
-        int updated = jdbc.sql(
-                        "UPDATE account SET deleted_at = :now, updated_at = :now WHERE id = :id AND deleted_at IS NULL")
+    public boolean softDeleteAccount(UserId userId, long accountId, Instant now) {
+        int updated = jdbc.sql("""
+                        UPDATE account SET deleted_at = :now, updated_at = :now
+                        WHERE id = :id AND user_id = :userId AND deleted_at IS NULL
+                        """)
                 .param("now", Timestamp.from(now))
                 .param("id", accountId)
+                .param("userId", userId.value())
                 .update();
         if (updated == 0) {
             return false;
@@ -74,20 +89,25 @@ class JdbcPortfolioStore implements PortfolioStore {
     }
 
     @Override
-    public Optional<HoldingRef> findHolding(long holdingId) {
+    public Optional<HoldingRef> findHolding(UserId userId, long holdingId) {
         return jdbc.sql("""
                         SELECT h.id, h.account_id, h.security_id FROM holding h
-                        JOIN account a ON a.id = h.account_id AND a.deleted_at IS NULL
+                        JOIN account a ON a.id = h.account_id AND a.deleted_at IS NULL AND a.user_id = :userId
                         WHERE h.id = :id
                         """)
                 .param("id", holdingId)
+                .param("userId", userId.value())
                 .query((rs, n) -> new HoldingRef(rs.getLong("id"), rs.getLong("account_id"), rs.getLong("security_id")))
                 .optional();
     }
 
     @Override
-    public Optional<Long> findHoldingId(long accountId, long securityId) {
-        return jdbc.sql("SELECT id FROM holding WHERE account_id = :accountId AND security_id = :securityId")
+    public Optional<Long> findHoldingId(UserId userId, long accountId, long securityId) {
+        return jdbc.sql("""
+                        SELECT h.id FROM holding h JOIN account a ON a.id = h.account_id AND a.user_id = :userId
+                        WHERE h.account_id = :accountId AND h.security_id = :securityId
+                        """)
+                .param("userId", userId.value())
                 .param("accountId", accountId)
                 .param("securityId", securityId)
                 .query(Long.class)
@@ -95,8 +115,19 @@ class JdbcPortfolioStore implements PortfolioStore {
     }
 
     @Override
-    public long countHoldings() {
-        return jdbc.sql("SELECT count(*) FROM holding").query(Long.class).single();
+    public long countHoldings(UserId userId) {
+        return jdbc.sql("""
+                        SELECT count(*) FROM holding h
+                        JOIN account a ON a.id = h.account_id AND a.deleted_at IS NULL AND a.user_id = :userId
+                        """).param("userId", userId.value()).query(Long.class).single();
+    }
+
+    @Override
+    public long countActiveAccounts(UserId userId) {
+        return jdbc.sql("SELECT count(*) FROM account WHERE user_id = :userId AND deleted_at IS NULL")
+                .param("userId", userId.value())
+                .query(Long.class)
+                .single();
     }
 
     @Override
@@ -126,10 +157,14 @@ class JdbcPortfolioStore implements PortfolioStore {
     }
 
     @Override
-    public boolean deleteHolding(long holdingId) {
+    public boolean deleteHolding(UserId userId, long holdingId) {
         return jdbc.sql("""
                                 DELETE FROM holding h USING account a
-                                WHERE h.id = :id AND a.id = h.account_id AND a.deleted_at IS NULL
-                                """).param("id", holdingId).update() == 1;
+                                WHERE h.id = :id AND a.id = h.account_id AND a.deleted_at IS NULL AND a.user_id = :userId
+                                """)
+                        .param("id", holdingId)
+                        .param("userId", userId.value())
+                        .update()
+                == 1;
     }
 }

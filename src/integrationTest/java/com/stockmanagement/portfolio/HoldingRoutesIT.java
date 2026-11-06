@@ -121,10 +121,12 @@ class HoldingRoutesIT extends IntegrationTestBase {
 
     @Test
     void rejectsWhenHoldingLimitReached() throws Exception {
-        f.manyHoldings(accountId, 500);
+        f.manyHoldings(accountId, 20);
         create(accountId, apple, "185", "1")
                 .andExpect(status().isUnprocessableContent())
-                .andExpect(content().string(containsString("보유 종목은 최대 500개까지 등록할 수 있습니다")));
+                .andExpect(content().string(containsString("보유 종목은 최대 20개까지 등록할 수 있습니다")));
+        assertThat(jdbc.sql("SELECT count(*) FROM holding").query(Long.class).single())
+                .isEqualTo(20);
     }
 
     @Test
@@ -209,6 +211,51 @@ class HoldingRoutesIT extends IntegrationTestBase {
                         .with(csrf())
                         .header("HX-Request", "true"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void rowShowsLetterAvatarAndMarketFlag() throws Exception {
+        create(accountId, samsung, "71500", "10")
+                .andExpect(content().string(containsString("security-avatar tone-")))
+                .andExpect(content().string(containsString(">삼</span>")))
+                .andExpect(content().string(containsString("/img/flag-kr.svg")))
+                .andExpect(content().string(containsString("alt=\"한국 주식\"")));
+        create(accountId, apple, "185.20", "1")
+                .andExpect(content().string(containsString(">애</span>")))
+                .andExpect(content().string(containsString("/img/flag-us.svg")))
+                .andExpect(content().string(containsString("alt=\"미국 주식\"")));
+    }
+
+    @Test
+    void acceptsThousandsSeparatedAvgPrice() throws Exception {
+        create(accountId, samsung, "1,234,567", "1")
+                .andExpect(status().isCreated())
+                .andExpect(content().string(containsString("₩1,234,567")));
+    }
+
+    @Test
+    void rowActionsAreIconButtonsAndAvgPriceFieldsFormatThousands() throws Exception {
+        long holding = f.holding(accountId, samsung, "71500", "10");
+        String row = mockMvc.perform(
+                        get("/holdings/{id}", holding).with(owner()).header("HX-Request", "true"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertThat(row).contains("aria-label=\"삼성전자 가이드 기록 보기\"", "aria-label=\"삼성전자 수정\"", "aria-label=\"삼성전자 삭제\"");
+        assertThat(row.split("class=\"btn-icon\"", -1)).hasSize(5); // 가이드·기록·수정·삭제
+        mockMvc.perform(get("/holdings/{id}/edit", holding).with(owner()).header("HX-Request", "true"))
+                .andExpect(content().string(containsString("data-thousands=\"true\"")));
+        mockMvc.perform(get("/").with(owner())).andExpect(content().string(containsString("data-thousands=\"true\"")));
+    }
+
+    @Test
+    void flagImagesArePublicSvg() throws Exception {
+        for (String flag : new String[] {"kr", "us"}) {
+            mockMvc.perform(get("/img/flag-{f}.svg", flag))
+                    .andExpect(status().isOk())
+                    .andExpect(header().string("Content-Type", containsString("image/svg+xml")));
+        }
     }
 
     @Test

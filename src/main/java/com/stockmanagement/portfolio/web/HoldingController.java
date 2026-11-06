@@ -5,6 +5,8 @@ import com.stockmanagement.common.error.ResourceNotFoundException;
 import com.stockmanagement.portfolio.application.DashboardQuery;
 import com.stockmanagement.portfolio.application.DashboardView.HoldingView;
 import com.stockmanagement.portfolio.application.HoldingService;
+import com.stockmanagement.user.domain.UserId;
+import com.stockmanagement.user.web.CurrentUser;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -30,6 +32,7 @@ class HoldingController {
 
     @PostMapping("/accounts/{accountId}/holdings")
     String create(
+            @CurrentUser UserId userId,
             @PathVariable long accountId,
             @RequestParam(required = false) String securityId,
             @RequestParam(required = false) String securityLabel,
@@ -39,9 +42,10 @@ class HoldingController {
             HttpServletResponse response) {
         HoldingForm form = new HoldingForm(accountId, parseId(securityId), securityLabel, avgPrice, quantity);
         try {
-            long id = holdingService.add(accountId, form.securityId(), form.avgPriceValue(), form.quantityValue());
+            long id = holdingService.add(
+                    userId, accountId, form.securityId(), form.avgPriceValue(), form.quantityValue());
             response.setStatus(HttpStatus.CREATED.value());
-            model.addAttribute("holding", requireHolding(id));
+            model.addAttribute("holding", requireHolding(userId, id));
             return "portfolio/holding :: created";
         } catch (DomainValidationException e) {
             FormErrors.apply(e, model, response);
@@ -53,19 +57,20 @@ class HoldingController {
     }
 
     @GetMapping("/holdings/{id}")
-    String row(@PathVariable long id, Model model) {
-        model.addAttribute("holding", requireHolding(id));
+    String row(@CurrentUser UserId userId, @PathVariable long id, Model model) {
+        model.addAttribute("holding", requireHolding(userId, id));
         return "portfolio/holding :: row-only";
     }
 
     @GetMapping("/holdings/{id}/edit")
-    String editRow(@PathVariable long id, Model model) {
-        model.addAttribute("holding", requireHolding(id));
+    String editRow(@CurrentUser UserId userId, @PathVariable long id, Model model) {
+        model.addAttribute("holding", requireHolding(userId, id));
         return "portfolio/holding :: edit-row-only";
     }
 
     @PutMapping("/holdings/{id}")
     String update(
+            @CurrentUser UserId userId,
             @PathVariable long id,
             @RequestParam(required = false) String avgPrice,
             @RequestParam(required = false) String quantity,
@@ -73,26 +78,26 @@ class HoldingController {
             HttpServletResponse response) {
         HoldingForm form = new HoldingForm(null, null, null, avgPrice, quantity);
         try {
-            holdingService.update(id, form.avgPriceValue(), form.quantityValue());
+            holdingService.update(userId, id, form.avgPriceValue(), form.quantityValue());
         } catch (DomainValidationException e) {
             FormErrors.apply(e, model, response);
             model.addAttribute("form", form);
-            model.addAttribute("holding", requireHolding(id));
+            model.addAttribute("holding", requireHolding(userId, id));
             return "portfolio/holding :: edit-row-only";
         }
-        model.addAttribute("holding", requireHolding(id));
+        model.addAttribute("holding", requireHolding(userId, id));
         return "portfolio/holding :: row-only";
     }
 
     @DeleteMapping("/holdings/{id}")
-    String delete(@PathVariable long id, Model model) {
-        holdingService.delete(id);
+    String delete(@CurrentUser UserId userId, @PathVariable long id, Model model) {
+        holdingService.delete(userId, id);
         FormErrors.toast(model, "portfolio.holding.deleted");
         return "fragments/toast :: toast";
     }
 
-    private HoldingView requireHolding(long id) {
-        return dashboardQuery.findHolding(id).orElseThrow(() -> new ResourceNotFoundException("holding", id));
+    private HoldingView requireHolding(UserId userId, long id) {
+        return dashboardQuery.findHolding(userId, id).orElseThrow(() -> new ResourceNotFoundException("holding", id));
     }
 
     private static Long parseId(String raw) {

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  가이드 버튼(FR-015, FR-019): 남은 횟수 표시, 한도 소진·거래정지면 비활성과 사유.
+  같은 종목의 한도가 바뀌면(guide-quota-changed-{securityId}) 자기 자신을 다시 받아 온다.
+-->
+<span th:fragment="button(h)" th:id="'guide-btn-' + ${h.id}" class="guide-button"
+      th:attr="data-security-id=${h.securityId}, data-security-name=${h.name}"
+      th:hx-get="@{/holdings/{id}/guide-button(id=${h.id})}"
+      th:hx-trigger="'guide-quota-changed-' + ${h.securityId} + ' from:body' + (${h.guidePending()} ? ', every 5s' : '')"
+      hx-swap="outerHTML"
+      th:with="remaining=${h.guideQuota().remaining()}, reasonId='guide-reason-' + ${h.id}">
+    <!-- 진행 중이면 같은 요청이 진행 카드를 다시 돌려준다(새 슬롯 없음). 패널을 다시 여는 버튼이 된다. -->
+    <button type="button" class="btn btn-sm btn-guide" th:classappend="${h.guidePending()} ? 'is-pending'"
+            th:hx-post="@{/holdings/{id}/guides(id=${h.id})}" hx-target="#guide-panel" hx-swap="innerHTML"
+            th:disabled="${h.guideDisabled() and !h.guidePending()}"
+            th:attr="aria-describedby=${h.guideDisabled() and !h.guidePending() ? reasonId : null}"
+            th:aria-label="${h.guidePending()} ? #{guide.button.pendingLabel(${h.name})} : #{guide.button.label(${h.name}, ${remaining})}">
+        <span th:if="${h.guidePending()}" class="btn-spinner" aria-hidden="true"></span>
+        <svg th:unless="${h.guidePending()}" aria-hidden="true" focusable="false" viewBox="0 0 16 16" class="btn-icon">
+            <path fill="currentColor" d="M8 1.5l1.6 3.9 3.9 1.6-3.9 1.6L8 12.5 6.4 8.6 2.5 7l3.9-1.6L8 1.5zm4.5 8.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7.7-1.8z"/>
+        </svg>
+        <span th:text="${h.guidePending()} ? #{guide.button.pending} : #{guide.button(${remaining})}">가이드 (남은 2회)</span>
+    </button>
+    <a class="btn btn-sm btn-ghost" th:href="@{/securities/{id}/guides(id=${h.securityId})}"
+       th:aria-label="#{guide.history.link.label(${h.name})}">
+        <svg th:replace="~{fragments/icon :: icon('history')}"></svg>
+        <span th:text="#{guide.history.link}">기록</span>
+    </a>
+    <span th:if="${h.guideDisabled() and !h.guidePending()}" th:id="${reasonId}" class="guide-reason">
+        <th:block th:if="${h.tradingStatus.name() == 'ACTIVE'}" th:text="#{guide.quota.resetsAt}">내일 00:00 (KST) 초기화</th:block>
+        <th:block th:unless="${h.tradingStatus.name() == 'ACTIVE'}" th:text="#{'guide.unavailable.' + ${h.tradingStatus.name()}}">거래정지</th:block>
+    </span>
+</span>
+
+<th:block th:fragment="button-only">
+    <span th:replace="~{:: button(${holding})}"></span>
+</th:block>
+</body>
+</html>

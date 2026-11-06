@@ -31,16 +31,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public abstract class E2ETestBase {
 
-    public static final String OWNER_PASSWORD = "correct-horse-battery";
-
     @ServiceConnection
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18");
 
     protected static final WireMockServer WIREMOCK =
-            new WireMockServer(wireMockConfig().dynamicPort());
+            new WireMockServer(wireMockConfig().dynamicPort().globalTemplating(true));
 
     private static Playwright playwright;
-    private static Browser browser;
+    protected static Browser browser;
 
     static {
         POSTGRES.start();
@@ -50,6 +48,17 @@ public abstract class E2ETestBase {
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
         registry.add("app.toss.base-url", WIREMOCK::baseUrl);
+        registry.add("app.kakao.auth-base-url", WIREMOCK::baseUrl);
+        registry.add("app.kakao.api-base-url", WIREMOCK::baseUrl);
+        registry.add("app.kakao.admin-key", () -> KakaoStubs.ADMIN_KEY);
+        // 기본 사용자(카카오 1001)가 관리자다: AI 설정(공용 키)을 관리한다
+        registry.add("app.admin.kakao-ids", () -> String.valueOf(Fixtures.DEFAULT_KAKAO_ID));
+        registry.add("spring.security.oauth2.client.registration.kakao.client-id", () -> "test-kakao-client");
+        registry.add("spring.security.oauth2.client.registration.kakao.client-secret", () -> "test-kakao-secret");
+        registry.add("app.ai.base-urls.anthropic", WIREMOCK::baseUrl);
+        registry.add("app.ai.base-urls.openai", () -> WIREMOCK.baseUrl() + "/v1");
+        registry.add("app.ai.timeout", () -> "2s");
+        registry.add("app.ai.guide-timeout", () -> "2s");
         registry.add("app.crypto.key", () -> Base64.getEncoder().encodeToString(new byte[32]));
         registry.add("app.scheduling.enabled", () -> "false");
         registry.add("app.market.master-sync-on-startup", () -> "false");
@@ -62,6 +71,7 @@ public abstract class E2ETestBase {
     protected JdbcClient jdbc;
 
     protected BrowserContext context;
+    private final java.util.List<BrowserContext> extraContexts = new java.util.ArrayList<>();
     protected Page page;
 
     @BeforeAll
@@ -85,6 +95,8 @@ public abstract class E2ETestBase {
     @AfterEach
     void cleanUp() {
         context.close();
+        extraContexts.forEach(BrowserContext::close);
+        extraContexts.clear();
         List<String> tables = jdbc.sql(
                         "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename <> 'flyway_schema_history'")
                 .query(String.class)
@@ -97,17 +109,38 @@ public abstract class E2ETestBase {
         return "http://localhost:" + port + path;
     }
 
+    /** 기본 사용자(카카오 1001)의 UserId. 사용자 행이 없으면 만든다. */
+    protected com.stockmanagement.user.domain.UserId defaultUserId() {
+        return new com.stockmanagement.user.domain.UserId(new Fixtures(jdbc).defaultUser());
+    }
+
+    /** 기본 사용자(카카오 1001, Fixtures로 만든 데이터의 주인)로 카카오 로그인한다. */
     protected void setupAndLogin() {
-        page.navigate(url("/setup"));
-        page.getByLabel("비밀번호", new Page.GetByLabelOptions().setExact(true)).fill(OWNER_PASSWORD);
-        page.getByLabel("비밀번호 확인").fill(OWNER_PASSWORD);
-        page.getByRole(com.microsoft.playwright.options.AriaRole.BUTTON, new Page.GetByRoleOptions().setName("설정 완료"))
+        loginAs(Fixtures.DEFAULT_KAKAO_ID, Fixtures.DEFAULT_NICKNAME);
+    }
+
+    /** WireMock 카카오 대역으로 실제 로그인 흐름(버튼 → 인가 → 콜백)을 거친다. */
+    protected void loginAs(long kakaoId, String nickname) {
+        loginAs(page, kakaoId, nickname);
+    }
+
+    /** 주어진 페이지(다른 브라우저 컨텍스트 가능)에서 카카오 로그인한다. 인가 대역은 마지막에 등록한 사용자로 응답한다. */
+    protected void loginAs(Page target, long kakaoId, String nickname) {
+        new KakaoStubs(WIREMOCK).user(kakaoId, nickname).authorizeAs(kakaoId);
+        target.navigate(url("/login"));
+        target.getByRole(
+                        com.microsoft.playwright.options.AriaRole.LINK,
+                        new Page.GetByRoleOptions().setName("카카오로 시작하기"))
                 .click();
-        page.getByLabel("비밀번호").fill(OWNER_PASSWORD);
-        page.getByRole(com.microsoft.playwright.options.AriaRole.BUTTON, new Page.GetByRoleOptions().setName("로그인"))
-                .click();
-        page.waitForURL(url("/"));
-        waitForHtmx();
+        target.waitForURL(url("/"));
+        target.waitForFunction("() => window.htmx !== undefined");
+    }
+
+    /** 다른 사용자를 위한 별도 브라우저 컨텍스트(쿠키 분리). 테스트가 끝나면 닫힌다. */
+    protected Page openSecondBrowser() {
+        BrowserContext second = browser.newContext(new Browser.NewContextOptions().setLocale("ko-KR"));
+        extraContexts.add(second);
+        return second.newPage();
     }
 
     /** htmx 요청·스왑·정착이 모두 끝날 때까지 기다린다(새로 붙은 요소의 트리거가 연결된 뒤에 조작하기 위해). */

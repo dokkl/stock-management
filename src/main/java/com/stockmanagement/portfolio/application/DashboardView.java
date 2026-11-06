@@ -1,11 +1,14 @@
 package com.stockmanagement.portfolio.application;
 
 import com.stockmanagement.common.domain.Currency;
+import com.stockmanagement.guide.domain.GuideQuota;
 import com.stockmanagement.market.domain.Exchange;
+import com.stockmanagement.market.domain.Market;
 import com.stockmanagement.market.domain.Quote;
 import com.stockmanagement.market.domain.QuoteStatus;
 import com.stockmanagement.market.domain.TradingStatus;
 import com.stockmanagement.portfolio.domain.HoldingValuation;
+import com.stockmanagement.portfolio.domain.SecurityAvatar;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -27,6 +30,8 @@ public record DashboardView(List<AccountView> accounts) {
      *
      * @param quote 저장된 시세. 없으면 null
      * @param quoteStatus 조회 시점 기준 시세 상태
+     * @param guidesUsedToday 오늘(KST) 이 종목의 실패하지 않은 가이드 요청 수(계좌 합산, FR-018)
+     * @param pendingGuideId 이 종목에 진행 중인 가이드 요청. 없으면 null
      */
     public record HoldingView(
             long id,
@@ -40,7 +45,30 @@ public record DashboardView(List<AccountView> accounts) {
             BigDecimal avgPrice,
             BigDecimal quantity,
             Quote quote,
-            QuoteStatus quoteStatus) {
+            QuoteStatus quoteStatus,
+            int guidesUsedToday,
+            Long pendingGuideId) {
+
+        public Market market() {
+            return exchange.market();
+        }
+
+        public SecurityAvatar avatar() {
+            return SecurityAvatar.of(symbol, name);
+        }
+
+        public boolean guidePending() {
+            return pendingGuideId != null;
+        }
+
+        public GuideQuota guideQuota() {
+            return new GuideQuota(guidesUsedToday);
+        }
+
+        /** 가이드를 요청할 수 없는 상태: 한도 소진 또는 거래정지·상장폐지. */
+        public boolean guideDisabled() {
+            return guideQuota().isExhausted() || tradingStatus != TradingStatus.ACTIVE;
+        }
 
         public boolean hasQuote() {
             return quote != null;

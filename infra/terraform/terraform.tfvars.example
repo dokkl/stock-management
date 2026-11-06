@@ -1,0 +1,11 @@
+# cp terraform.tfvars.example terraform.tfvars 후 값을 채운다(terraform.tfvars는 커밋하지 않는다).
+domain_name      = "stock.example.com"
+hosted_zone_name = "example.com"
+
+# container_power             = "small"
+# db_blueprint_id             = "postgres_18"
+# db_bundle_id                = "micro_2_0"
+# create_github_oidc_provider = true
+
+# DB SSH 터널을 쓸 운영자 IP(curl https://checkip.amazonaws.com). 비우면 SSH가 닫힌다.
+# admin_ssh_cidrs = ["203.0.113.10/32"]

@@ -1,6 +1,8 @@
 package com.stockmanagement.market.adapter.toss;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.net.InetSocketAddress;
+import java.net.ProxySelector;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.util.function.Function;
@@ -26,10 +28,13 @@ public class TossHttpClient {
 
     public TossHttpClient(RestClient.Builder builder, TossProperties properties) {
         this.properties = properties;
-        HttpClient httpClient = HttpClient.newBuilder()
-                .version(HttpClient.Version.HTTP_1_1)
-                .connectTimeout(properties.timeout())
-                .build();
+        HttpClient.Builder http =
+                HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(properties.timeout());
+        if (properties.proxyUrl() != null) {
+            URI proxy = properties.proxyUrl();
+            http.proxy(ProxySelector.of(InetSocketAddress.createUnresolved(proxy.getHost(), proxy.getPort())));
+        }
+        HttpClient httpClient = http.build();
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
         factory.setReadTimeout(properties.timeout());
         this.restClient = builder.clone()

@@ -1,0 +1,6 @@
+{
+  "note": "기준선 p95(ms). perf/budget.js가 이 값의 1.2배를 넘으면 실패한다(헌법 원칙 IV 20% 회귀). 2026-11-06 측정(기능 002): 로컬 Docker(Apple Silicon), 앱·PostgreSQL 18·카카오 대역(WireMock) 컨테이너, 사용자 50명이 각자 카카오 OAuth로 로그인한 50 VU·60초(대기 시간 없는 폐쇄 루프, 약 1,000 req/s), perf/seed.sql 데이터셋. 이전 기준선(5 VU, 1인)과는 부하 조건이 달라 비교하지 않는다.",
+  "single": 74.69,
+  "list": 235.31,
+  "write": 103.25
+}

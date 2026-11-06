@@ -1,10 +1,12 @@
 package com.stockmanagement.support;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oauth2Login;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
-import com.stockmanagement.auth.application.SetupService;
+import com.stockmanagement.user.domain.DisplayName;
+import com.stockmanagement.user.domain.UserId;
+import com.stockmanagement.user.web.AppUserPrincipal;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
@@ -30,13 +32,11 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Import(TestClockConfig.class)
 public abstract class IntegrationTestBase {
 
-    public static final String OWNER_PASSWORD = "correct-horse-battery";
-
     @ServiceConnection
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18");
+    protected static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18");
 
     protected static final WireMockServer WIREMOCK =
-            new WireMockServer(wireMockConfig().dynamicPort());
+            new WireMockServer(wireMockConfig().dynamicPort().globalTemplating(true));
 
     static {
         POSTGRES.start();
@@ -46,6 +46,15 @@ public abstract class IntegrationTestBase {
     @DynamicPropertySource
     static void properties(DynamicPropertyRegistry registry) {
         registry.add("app.toss.base-url", WIREMOCK::baseUrl);
+        registry.add("app.kakao.auth-base-url", WIREMOCK::baseUrl);
+        registry.add("app.kakao.api-base-url", WIREMOCK::baseUrl);
+        registry.add("app.kakao.admin-key", () -> KakaoStubs.ADMIN_KEY);
+        registry.add("spring.security.oauth2.client.registration.kakao.client-id", () -> "test-kakao-client");
+        registry.add("spring.security.oauth2.client.registration.kakao.client-secret", () -> "test-kakao-secret");
+        registry.add("app.ai.base-urls.anthropic", WIREMOCK::baseUrl);
+        registry.add("app.ai.base-urls.openai", () -> WIREMOCK.baseUrl() + "/v1");
+        registry.add("app.ai.timeout", () -> "2s");
+        registry.add("app.ai.guide-timeout", () -> "2s");
         registry.add("app.toss.client-id", () -> "test-client-id");
         registry.add("app.toss.client-secret", () -> "test-client-secret");
         registry.add("app.crypto.key", () -> Base64.getEncoder().encodeToString(new byte[32]));
@@ -61,9 +70,6 @@ public abstract class IntegrationTestBase {
 
     @Autowired
     protected MutableClock clock;
-
-    @Autowired
-    private SetupService setupService;
 
     @BeforeEach
     void resetExternalState() {
@@ -83,15 +89,28 @@ public abstract class IntegrationTestBase {
         }
     }
 
-    protected void createOwner() {
-        setupService.setup(OWNER_PASSWORD, OWNER_PASSWORD);
+    /** 기본 사용자(카카오 1001)를 만든다. */
+    protected UserId createOwner() {
+        return new UserId(new Fixtures(jdbc).defaultUser());
     }
 
-    /** 소유자로 인증된 요청. 소유자 행도 함께 만든다. */
+    /** 기본 사용자로 로그인한 요청. 사용자 행도 함께 만든다. */
     protected RequestPostProcessor owner() {
-        if (jdbc.sql("SELECT count(*) FROM owner").query(Long.class).single() == 0) {
-            createOwner();
-        }
-        return user("owner").roles("OWNER");
+        return as(createOwner());
+    }
+
+    /** 기본 사용자를 관리자(ADMIN_KAKAO_IDS에 든 사용자)로 로그인한 요청. 관리자만 AI 설정을 쓴다. */
+    protected RequestPostProcessor admin() {
+        return oauth2Login().oauth2User(new AppUserPrincipal(createOwner(), DisplayName.of("관리자"), true));
+    }
+
+    /** 주어진 사용자로 로그인한 요청(카카오 로그인을 마친 세션과 같다). */
+    protected RequestPostProcessor as(UserId userId) {
+        return oauth2Login().oauth2User(new AppUserPrincipal(userId, DisplayName.of("테스트 사용자")));
+    }
+
+    /** 카카오 사용자를 만들고 그 UserId를 돌려준다. */
+    protected UserId userWithKakao(long kakaoId) {
+        return new UserId(new Fixtures(jdbc).user(kakaoId, "사용자" + kakaoId));
     }
 }

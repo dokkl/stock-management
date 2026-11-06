@@ -358,10 +358,10 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T078 [P] [US4] `CredentialCipher` 단위 테스트를 `UT/aicredential/application/CredentialCipherTest.java`에 작성한다: `ApiKey` 암호화 결과의 last4 정확성, 왕복 복호화, `EncryptedSecret`에 평문 없음(공통 `AesGcmSecretCipher`는 T021에서 검증됨)
-- [ ] T079 [P] [US4] `ApiKey` 값 객체 단위 테스트를 `UT/aicredential/domain/ApiKeyTest.java`에 작성한다: `toString()`은 `****1234`, 빈 값과 공백은 거부, `equals`가 원문을 노출하지 않음
-- [ ] T080 [P] [US4] 공급자 어댑터 키 검증 통합 테스트를 `IT/guide/AiProviderVerifyKeyIT.java`에 작성한다(WireMock으로 Anthropic·OpenAI 엔드포인트 대역): 200은 VALID, 401은 INVALID, 타임아웃·503은 UNAVAILABLE
-- [ ] T081 [P] [US4] AI 설정 라우트 계약 테스트를 `IT/aicredential/AiSettingsRoutesIT.java`에 작성한다:
+- [X] T078 [P] [US4] `CredentialCipher` 단위 테스트를 `UT/aicredential/application/CredentialCipherTest.java`에 작성한다: `ApiKey` 암호화 결과의 last4 정확성, 왕복 복호화, `EncryptedSecret`에 평문 없음(공통 `AesGcmSecretCipher`는 T021에서 검증됨)
+- [X] T079 [P] [US4] `ApiKey` 값 객체 단위 테스트를 `UT/aicredential/domain/ApiKeyTest.java`에 작성한다: `toString()`은 `****1234`, 빈 값과 공백은 거부, `equals`가 원문을 노출하지 않음
+- [X] T080 [P] [US4] 공급자 어댑터 키 검증 통합 테스트를 `IT/guide/AiProviderVerifyKeyIT.java`에 작성한다(WireMock으로 Anthropic·OpenAI 엔드포인트 대역): 200은 VALID, 401은 INVALID, 타임아웃·503은 UNAVAILABLE
+- [X] T081 [P] [US4] AI 설정 라우트 계약 테스트를 `IT/aicredential/AiSettingsRoutesIT.java`에 작성한다:
   - `PUT /settings/ai/credentials/{provider}`: 200 / 422 "키를 확인할 수 없습니다"(입력란 비움) / 503
   - 같은 공급자로 재등록하면 교체
   - 첫 키 등록 시 자동 선택
@@ -369,33 +369,41 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
   - `DELETE`는 확인 후 삭제하고 선택을 다른 키로 바꾸거나 NULL로 둠
   - DB `ai_credential`에 평문이 없음(바이트 검색)
   - 미인증 401, CSRF 없음 403
-- [ ] T082 [P] [US4] 키 비노출 테스트를 `IT/aicredential/ApiKeyLeakIT.java`에 작성한다(SC-009). 등록·검증 실패·가이드 실패 흐름 동안 로그(`OutputCaptureExtension`), 응답 본문, 리다이렉트 URL, DB 모든 텍스트 컬럼에서 키 원문 검색 결과가 0건이어야 한다
-- [ ] T083 [P] [US4] E2E 시나리오를 `E2E/aicredential/AiSettingsE2E.java`에 작성한다. quickstart S4 1~4단계(WireMock AI 대역)와 axe 위반 0건을 검증한다
+- [X] T082 [P] [US4] 키 비노출 테스트를 `IT/aicredential/ApiKeyLeakIT.java`에 작성한다(SC-009). 등록·검증 실패·가이드 실패 흐름 동안 로그(`OutputCaptureExtension`), 응답 본문, 리다이렉트 URL, DB 모든 텍스트 컬럼에서 키 원문 검색 결과가 0건이어야 한다
+- [X] T083 [P] [US4] E2E 시나리오를 `E2E/aicredential/AiSettingsE2E.java`에 작성한다. quickstart S4 1~4단계(WireMock AI 대역)와 axe 위반 0건을 검증한다
 
 ### Implementation for User Story 4
 
-- [ ] T084 [US4] Flyway `RES/db/migration/V6__ai_credential.sql`을 작성한다:
+- [X] T084 [US4] Flyway `RES/db/migration/V6__ai_credential.sql`을 작성한다:
   - `ai_credential` 테이블: id BIGINT PK, provider VARCHAR(20) NOT NULL UNIQUE `CHECK (provider IN ('ANTHROPIC','OPENAI'))`, ciphertext BYTEA NOT NULL, iv BYTEA NOT NULL `CHECK (octet_length(iv) = 12)`, key_version SMALLINT NOT NULL, last4 CHAR(4) NOT NULL, verified_at TIMESTAMPTZ NOT NULL, created_at/updated_at
-- [ ] T085 [P] [US4] 도메인과 포트를 만든다:
+- [X] T085 [P] [US4] 도메인과 포트를 만든다:
   - `AiProvider` enum(ANTHROPIC, OPENAI, 표시명 포함), `ApiKey`, `EncryptedSecret`, `KeyCheck`: `MAIN/aicredential/domain/`
   - T079을 통과시킨다
-- [ ] T086 [P] [US4] `CredentialCipher`를 `MAIN/aicredential/application/CredentialCipher.java`에 구현한다. 공통 `SecretCipher`(T038)를 감싸 `ApiKey` ↔ `EncryptedSecret`·last4를 변환한다(T078 통과)
-- [ ] T087 [US4] `AiGuideProvider` 포트를 `MAIN/guide/application/port/AiGuideProvider.java`에 정의한다. `provider()`, `verifyKey(ApiKey)`, `generateGuide(ApiKey, GuidePrompt)`를 두고 `GuideOutcome` sealed 타입을 쓴다(contracts/ports.md)
-- [ ] T088 [US4] `AiGuideClientFactory`와 두 어댑터를 `MAIN/guide/adapter/ai/`에 구현한다:
+- [X] T086 [P] [US4] `CredentialCipher`를 `MAIN/aicredential/application/CredentialCipher.java`에 구현한다. 공통 `SecretCipher`(T038)를 감싸 `ApiKey` ↔ `EncryptedSecret`·last4를 변환한다(T078 통과)
+- [X] T087 [US4] `AiGuideProvider` 포트를 `MAIN/guide/application/port/AiGuideProvider.java`에 정의한다. `provider()`, `verifyKey(ApiKey)`, `generateGuide(ApiKey, GuidePrompt)`를 두고 `GuideOutcome` sealed 타입을 쓴다(contracts/ports.md)
+- [X] T088 [US4] `AiGuideClientFactory`와 두 어댑터를 `MAIN/guide/adapter/ai/`에 구현한다:
   - `AiGuideClientFactory`: 요청마다 사용자 키로 `AnthropicChatModel`/`OpenAiChatModel`을 생성하고, 모델명은 `app.ai.models.*`, 타임아웃은 `app.ai.timeout`(60s)
   - `AnthropicGuideProvider`, `OpenAiGuideProvider`
   - 이 단계에서는 `verifyKey`만 구현한다(최소 토큰 요청). 401/403은 INVALID, 타임아웃/5xx는 UNAVAILABLE이다(T080 통과)
   - Spring AI 모델 자동 구성은 `spring.autoconfigure.exclude`로 끈다
-- [ ] T089 [US4] `AiCredentialEntity`·`AiCredentialRepository`를 `MAIN/aicredential/persistence/`에, `CredentialService`를 `MAIN/aicredential/application/CredentialService.java`에 구현한다:
+- [X] T089 [US4] `AiCredentialEntity`·`AiCredentialRepository`를 `MAIN/aicredential/persistence/`에, `CredentialService`를 `MAIN/aicredential/application/CredentialService.java`에 구현한다:
   - 등록: 검증 성공 시에만 암호화 저장하고, 기존 키가 있으면 교체한다
   - 첫 키면 `owner.selected_ai_provider`를 설정한다
   - 삭제 시 선택을 정리한다
   - `selectProvider`는 키가 있는 공급자만 허용한다
-- [ ] T090 [US4] `AiSettingsController`(`GET /settings/ai`, `PUT /settings/ai/credentials/{provider}`, `DELETE /settings/ai/credentials/{provider}`, `PUT /settings/ai/selection`)를 `MAIN/aicredential/web/`에, 템플릿을 `RES/templates/settings/ai.html`에 구현한다:
+- [X] T090 [US4] `AiSettingsController`(`GET /settings/ai`, `PUT /settings/ai/credentials/{provider}`, `DELETE /settings/ai/credentials/{provider}`, `PUT /settings/ai/selection`)를 `MAIN/aicredential/web/`에, 템플릿을 `RES/templates/settings/ai.html`에 구현한다:
   - 키 입력은 `type="password"`, `autocomplete="off"`이고 오류 재렌더링 시 값을 비운다
   - 키 없는 공급자에는 "키 필요"를 표시하고 선택할 수 없게 한다
   - T081·T083을 통과시킨다
-- [ ] T091 [US4] `RES/logback-spring.xml`에 마스킹 패턴(`sk-[A-Za-z0-9_-]{8,}`, `sk-ant-[A-Za-z0-9_-]{8,}` → `****`)을 추가한다. `CredentialService` 경계에서 예외를 감쌀 때 원인 메시지에서 키를 제거한다(T082 통과)
+- [X] T091 [US4] `RES/logback-spring.xml`에 마스킹 패턴(`sk-[A-Za-z0-9_-]{8,}`, `sk-ant-[A-Za-z0-9_-]{8,}` → `****`)을 추가한다. `CredentialService` 경계에서 예외를 감쌀 때 원인 메시지에서 키를 제거한다(T082 통과)
+
+**구현 메모 (2026-11-05)**: 계획과 달라진 점
+- T085 암호문 타입은 새로 만들지 않고 공통 `common.crypto.EncryptedSecret`을 쓴다. `CredentialCipher.encrypt`는 `EncryptedApiKey(secret, last4)`를 돌려준다.
+- T087 `AiGuideProvider`에는 이번 단계에서 쓰는 `provider()`·`verifyKey()`만 두었다. `generateGuide`와 `GuideOutcome`은 US3(T104~)에서 추가한다(호출처 없는 빈 구현을 두지 않기 위해).
+- T088 의존성이 스타터가 아닌 `spring-ai-anthropic`·`spring-ai-openai`라 모델 자동 구성이 없으므로 `spring.autoconfigure.exclude`는 필요 없다. 공급자 주소는 `app.ai.base-urls.*`(기본값은 공식 주소)로 바꿀 수 있고, 테스트는 WireMock을 가리킨다.
+- T089 JPA 엔티티 대신 다른 기능과 같은 방식인 JdbcClient로 `CredentialStore` 포트와 `JdbcCredentialStore`를 구현했다. V6에 `owner.selected_ai_provider` CHECK 제약을 추가했다.
+- T091 키를 로그에 넘기지 않는 것이 1차 규칙이고(`ApiKey.toString()`은 `****1234`, 어댑터는 상태 코드만 기록), `logback-spring.xml`의 `%replace` 마스킹은 메시지와 예외 스택에 모두 적용되는 2차 장치다.
+- T082의 "가이드 실패 흐름"은 US3에서 `ApiKeyLeakIT`에 추가한다. T083은 quickstart S4 2~4단계를 다루며, 1단계(가이드 버튼 → 설정 이동)는 US3 E2E에서 다룬다.
 
 **Checkpoint**: AI 키 등록·선택이 단독으로 동작하며, 아직 가이드 버튼은 없다.
 
@@ -409,46 +417,46 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T092 [P] [US3] `GuideRequest` 상태 전이 단위 테스트를 `UT/guide/domain/GuideRequestTest.java`에 작성한다:
+- [X] T092 [P] [US3] `GuideRequest` 상태 전이 단위 테스트를 `UT/guide/domain/GuideRequestTest.java`에 작성한다:
   - 허용: PENDING → SUCCEEDED, PENDING → FAILED
   - 종료 상태에서 전이하면 예외(FR-028)
   - `usage_date`는 요청 시작 시각의 KST 날짜(23:59:59.9 KST 요청은 그날)
-- [ ] T093 [P] [US3] `GuideQuota` 단위 테스트를 `UT/guide/domain/GuideQuotaTest.java`에 작성한다: 남은 횟수 = 2 − 비실패 건수, 하한 0. 초기화 시각은 다음 날 00:00 KST다
-- [ ] T094 [P] [US3] `GuidePromptBuilder` 단위 테스트를 `UT/guide/domain/GuidePromptBuilderTest.java`에 작성한다:
+- [X] T093 [P] [US3] `GuideQuota` 단위 테스트를 `UT/guide/domain/GuideQuotaTest.java`에 작성한다: 남은 횟수 = 2 − 비실패 건수, 하한 0. 초기화 시각은 다음 날 00:00 KST다
+- [X] T094 [P] [US3] `GuidePromptBuilder` 단위 테스트를 `UT/guide/domain/GuidePromptBuilderTest.java`에 작성한다:
   - 60거래일 종가로 20/60일 이동평균, 최고·최저, 일간 수익률 표준편차 계산
   - 평단가·수량·평가손익·수익률 포함
   - **계좌명은 포함하지 않음**
-- [ ] T095 [P] [US3] 슬롯 예약 통합 테스트를 `IT/guide/GuideSlotReservationIT.java`에 작성한다:
+- [X] T095 [P] [US3] 슬롯 예약 통합 테스트를 `IT/guide/GuideSlotReservationIT.java`에 작성한다:
   - slot 1 → slot 2 → 세 번째는 `QuotaExceeded`
   - FAILED 처리 후 해당 슬롯 재사용 가능
   - 다른 종목은 독립
   - 같은 종목을 여러 계좌에 보유해도 합산
   - 자정 경계: `MutableClock` 23:59 KST 요청 → 다음 날 00:00 이후에도 2회 사용 가능
-- [ ] T096 [P] [US3] 동시성 통합 테스트를 `IT/guide/GuideQuotaConcurrencyIT.java`에 작성한다(FR-021, SC-006). 같은 종목에 동시 요청 20건(가상 스레드, `CountDownLatch`)을 보내고, 100회 반복해 비실패 행이 항상 2개 이하인지 확인한다
-- [ ] T097 [P] [US3] 가이드 생성 어댑터 통합 테스트를 `IT/guide/AiGenerateGuideIT.java`에 작성한다(WireMock):
+- [X] T096 [P] [US3] 동시성 통합 테스트를 `IT/guide/GuideQuotaConcurrencyIT.java`에 작성한다(FR-021, SC-006). 같은 종목에 동시 요청 20건(가상 스레드, `CountDownLatch`)을 보내고, 100회 반복해 비실패 행이 항상 2개 이하인지 확인한다
+- [X] T097 [P] [US3] 가이드 생성 어댑터 통합 테스트를 `IT/guide/AiGenerateGuideIT.java`에 작성한다(WireMock):
   - 스키마에 맞는 JSON이면 `Generated(GuideContent)`
   - 스키마 불일치면 `Generated(rawText)`
   - 401·402·잔액 부족은 `CredentialError`
   - 60초 타임아웃·429·5xx는 `TransientError`
   - 응답 모델명 추출
-- [ ] T098 [P] [US3] 가이드 라우트 계약 테스트를 `IT/guide/GuideRoutesIT.java`에 작성한다:
+- [X] T098 [P] [US3] 가이드 라우트 계약 테스트를 `IT/guide/GuideRoutesIT.java`에 작성한다:
   - `POST /holdings/{id}/guides`: 202(진행 프래그먼트 `hx-trigger="every 2s"`) / 409+`HX-Redirect: /settings/ai`(키 없음) / 429(한도, "내일 00:00 (KST)") / 409(거래정지·상장폐지) / 404
   - PENDING 중 재요청은 기존 요청 프래그먼트 202(새 슬롯 없음)
   - `GET /guides/{id}/status`: PENDING / SUCCEEDED(`HX-Trigger: guide-quota-changed`) / FAILED(failure_kind별 문구)
   - 실패 시 남은 횟수 유지
   - 미인증 401, `GET /guides/{id}` 없는 id 404
-- [ ] T099 [P] [US3] `StaleGuideSweeper` 통합 테스트를 `IT/guide/StaleGuideSweeperIT.java`에 작성한다: 3분 넘은 PENDING은 FAILED(`TRANSIENT_ERROR`)가 되고 슬롯이 반환된다
-- [ ] T100 [P] [US3] 응답 시간 예산 테스트를 `IT/guide/GuideRequestLatencyIT.java`에 작성한다. AI 대역 지연을 10초로 둬도 `POST /holdings/{id}/guides`의 응답 시간이 500ms 미만인지 확인한다(헌법 원칙 IV, research R8)
-- [ ] T101 [P] [US3] E2E 시나리오를 `E2E/guide/GuideRequestE2E.java`에 작성한다:
+- [X] T099 [P] [US3] `StaleGuideSweeper` 통합 테스트를 `IT/guide/StaleGuideSweeperIT.java`에 작성한다: 3분 넘은 PENDING은 FAILED(`TRANSIENT_ERROR`)가 되고 슬롯이 반환된다
+- [X] T100 [P] [US3] 응답 시간 예산 테스트를 `IT/guide/GuideRequestLatencyIT.java`에 작성한다. AI 대역 지연을 10초로 둬도 `POST /holdings/{id}/guides`의 응답 시간이 500ms 미만인지 확인한다(헌법 원칙 IV, research R8)
+- [X] T101 [P] [US3] E2E 시나리오를 `E2E/guide/GuideRequestE2E.java`에 작성한다:
   - quickstart S5 1~4단계(WireMock AI): 결과에 요약·진단·행동·근거·위험·면책 문구·"OpenAI · <모델>" 표시
   - 버튼 `aria-busy`, 2회 후 비활성
   - axe 위반 0건
 
-- [ ] T102 [P] [US3] 일봉 조회 통합 테스트를 `IT/market/TossDailyCandlesIT.java`에 작성한다(WireMock `GET /api/v1/candles?interval=1d`): 최신순 응답 정렬, 최대 120봉(200 한도 내), BigDecimal 보존
+- [X] T102 [P] [US3] 일봉 조회 통합 테스트를 `IT/market/TossDailyCandlesIT.java`에 작성한다(WireMock `GET /api/v1/candles?interval=1d`): 최신순 응답 정렬, 최대 120봉(200 한도 내), BigDecimal 보존
 
 ### Implementation for User Story 3
 
-- [ ] T103 [US3] Flyway `RES/db/migration/V7__guide_request.sql`을 작성한다:
+- [X] T103 [US3] Flyway `RES/db/migration/V7__guide_request.sql`을 작성한다:
   - `guide_request` 테이블:
     - id BIGINT PK
     - security_id FK NOT NULL
@@ -468,37 +476,37 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
   - `CREATE UNIQUE INDEX ux_guide_slot ON guide_request (security_id, usage_date, slot) WHERE status <> 'FAILED'`
   - `CREATE INDEX ix_guide_history ON guide_request (security_id, requested_at DESC) WHERE status = 'SUCCEEDED'`
   - 종료 상태(`SUCCEEDED`/`FAILED`) 행의 UPDATE를 거부하는 트리거 함수
-- [ ] T104 [P] [US3] 가이드 도메인을 `MAIN/guide/domain/`에 구현한다(T092·T093 통과):
+- [X] T104 [P] [US3] 가이드 도메인을 `MAIN/guide/domain/`에 구현한다(T092·T093 통과):
   - `GuideRequest`(상태 전이), `GuideStatus`, `FailureKind`, `GuideQuota`
   - `GuideContent` record: summary, diagnosis, action enum `HOLD|BUY_MORE|PARTIAL_SELL|SELL|WATCH`, rationale, risks(1~5개). contracts/ai-guide-output.schema.json과 일치시킨다
-- [ ] T105 [P] [US3] `GuidePrompt`와 `GuidePromptBuilder`를 `MAIN/guide/domain/`에 구현하고(T094 통과), 시스템 프롬프트 템플릿을 `RES/prompts/guide-system.st`에 둔다. 템플릿은 한국어 응답, JSON 스키마 준수, 투자 자문이 아님을 명시하고 출력 길이에 상한을 둔다
-- [ ] T106 [US3] `MarketDataProvider.fetchDailyCandles`를 `MAIN/market/adapter/toss/TossMarketDataProvider.java`에 구현한다. `GET /api/v1/candles?interval=1d&count=…`, 최대 120봉이다(T102 통과)
-- [ ] T107 [US3] `AnthropicGuideProvider`와 `OpenAiGuideProvider`에 `generateGuide`를 구현한다(`MAIN/guide/adapter/ai/`):
+- [X] T105 [P] [US3] `GuidePrompt`와 `GuidePromptBuilder`를 `MAIN/guide/domain/`에 구현하고(T094 통과), 시스템 프롬프트 템플릿을 `RES/prompts/guide-system.st`에 둔다. 템플릿은 한국어 응답, JSON 스키마 준수, 투자 자문이 아님을 명시하고 출력 길이에 상한을 둔다
+- [X] T106 [US3] `MarketDataProvider.fetchDailyCandles`를 `MAIN/market/adapter/toss/TossMarketDataProvider.java`에 구현한다. `GET /api/v1/candles?interval=1d&count=…`, 최대 120봉이다(T102 통과)
+- [X] T107 [US3] `AnthropicGuideProvider`와 `OpenAiGuideProvider`에 `generateGuide`를 구현한다(`MAIN/guide/adapter/ai/`):
   - Spring AI `ChatClient` + `BeanOutputConverter<GuideContent>`
   - 파싱 실패 시 rawText 폴백
   - HTTP 오류를 `CredentialError`/`TransientError`로 분류
   - T097을 통과시킨다
-- [ ] T108 [US3] `GuideRequestRepository`를 `MAIN/guide/persistence/GuideRequestRepository.java`에 구현한다:
+- [X] T108 [US3] `GuideRequestRepository`를 `MAIN/guide/persistence/GuideRequestRepository.java`에 구현한다:
   - `JdbcClient`로 slot 1 INSERT, 유니크 위반(`DuplicateKeyException`)이면 slot 2 INSERT, 또 위반이면 `QuotaExceeded`를 반환한다
   - `markSucceeded`·`markFailed`는 `WHERE status='PENDING'` 조건부로 UPDATE한다
   - `countActive(securityId, date)`, `findPending(securityId, date)`를 둔다
   - T095·T096을 통과시킨다
-- [ ] T109 [US3] `GuideService.request(holdingId)`를 `MAIN/guide/application/GuideService.java`에 구현한다:
+- [X] T109 [US3] `GuideService.request(holdingId)`를 `MAIN/guide/application/GuideService.java`에 구현한다:
   - 사전 조건 확인: 키 존재, 선택 공급자, 종목 `ACTIVE`, 시세 존재
   - 같은 종목의 PENDING이 있으면 그 요청을 반환한다
   - 스냅샷과 함께 슬롯을 예약하고, `GuideRunner`에 제출한다
-- [ ] T110 [US3] `GuideRunner`를 `MAIN/guide/application/GuideRunner.java`에 구현한다:
+- [X] T110 [US3] `GuideRunner`를 `MAIN/guide/application/GuideRunner.java`에 구현한다:
   - `guideExecutor` 가상 스레드에서 실행
   - 일봉 조회 → 프롬프트 생성 → 키 복호화 → `generateGuide`
   - 결과에 따라 `markSucceeded`(content/raw_text, model) 또는 `markFailed`(failure_kind)
   - 예외는 로깅 후 FAILED로 처리하고 삼키지 않는다
   - 실행 직전 종목이 `ACTIVE`가 아니면 AI를 호출하지 않고 `FAILED`/`INVALID_STATE`
   - 요청~완료 소요 시간을 Micrometer 타이머 `guide.generation.duration`(태그 provider, outcome)으로 기록한다(SC-005 측정)
-- [ ] T111 [US3] `StaleGuideSweeper`(`@Scheduled` 1분마다, `requested_at < now − 3m`인 PENDING을 FAILED/`TRANSIENT_ERROR`로)를 `MAIN/guide/application/StaleGuideSweeper.java`에 구현한다(T099 통과)
-- [ ] T112 [US3] `GuideController`(`POST /holdings/{id}/guides`, `GET /guides/{id}/status`, `GET /guides/{id}`)를 `MAIN/guide/web/GuideController.java`에 구현한다. 템플릿은 `RES/templates/guide/`에 둔다:
+- [X] T111 [US3] `StaleGuideSweeper`(`@Scheduled` 1분마다, `requested_at < now − 3m`인 PENDING을 FAILED/`TRANSIENT_ERROR`로)를 `MAIN/guide/application/StaleGuideSweeper.java`에 구현한다(T099 통과)
+- [X] T112 [US3] `GuideController`(`POST /holdings/{id}/guides`, `GET /guides/{id}/status`, `GET /guides/{id}`)를 `MAIN/guide/web/GuideController.java`에 구현한다. 템플릿은 `RES/templates/guide/`에 둔다:
   - `progress.html`, `result.html`(면책 문구 `guide.disclaimer` 고정 표시, 공급자·모델 표시, rawText 폴백 표시), `failure.html`, `quota-exhausted.html`
   - T098·T100를 통과시킨다
-- [ ] T113 [US3] `holding-row.html`에 가이드 버튼을 추가한다:
+- [X] T113 [US3] `holding-row.html`에 가이드 버튼을 추가한다:
   - "가이드 (남은 N회)" 표시
   - 한도 소진·거래정지 시 `disabled`와 사유 표시
   - `hx-post`와 `hx-indicator`
@@ -506,7 +514,49 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
   - 남은 횟수는 `DashboardJdbcQuery`에 오늘 KST 기준 집계를 LEFT JOIN해 단일 쿼리를 유지한다(T045 재통과)
   - T101를 통과시킨다
 
+**구현 메모 (2026-11-05)**: 계획과 달라진 점
+- T108 슬롯 예약은 `DuplicateKeyException`을 잡는 대신 `INSERT … ON CONFLICT (security_id, usage_date, slot) WHERE status <> 'FAILED' DO NOTHING RETURNING id`를 쓴다. 유니크 위반 예외는 PostgreSQL 트랜잭션을 깨뜨리기 때문이다. 구현은 포트 `GuideStore` + `JdbcGuideStore`다.
+- T103 종료 상태 불변 트리거는 `holding_id`만 바뀌는 경우를 허용한다. 보유 종목은 물리 삭제되어 FK `ON DELETE SET NULL`이 종료된 행을 UPDATE하기 때문이다(FR-027 기록 유지). 상태·실패 사유·결과 정합성 CHECK 제약을 추가했다.
+- T104 `GuideOutcome`은 `guide.domain`에 두었다(`application.port`에는 인터페이스만 둔다는 ArchUnit 규칙).
+- T107 `ChatClient` 대신 `ChatModel` + `BeanOutputConverter`를 쓴다(`spring-ai-client-chat` 의존성 불필요). 잔액 부족은 Anthropic 400 "credit balance", OpenAI 429 `insufficient_quota`로 판별한다.
+- T105 시스템 프롬프트의 `{format}`은 StringTemplate 대신 문자열 치환으로 채운다(스키마 JSON의 중괄호 때문).
+- T096 동시성은 DB 보장을 직접 검증하도록 `GuideStore.reserve`에 20건 × 100회로 확인한다.
+- T109 시세가 없으면 409(`NO_QUOTE`)로 안내한다.
+- T112·T113 가이드 결과는 대시보드 상단의 `#guide-panel` 한 곳에 보인다. 버튼은 `GET /holdings/{id}/guide-button`으로 다시 그리며, 같은 종목 행만 갱신하도록 `HX-Trigger`에 `guide-quota-changed-{securityId}`도 함께 보낸다(htmx `allowEval=false`라 트리거 필터를 쓸 수 없음). FAILED 응답에도 이벤트를 보낸다.
+- US4에서 미룬 "가이드 실패 흐름 키 비노출"(`ApiKeyLeakIT`)과 quickstart S4 1단계(`GuideRequestE2E`)를 이번에 추가했다.
+
 **Checkpoint**: 가이드 요청·한도·실패 처리가 동작하고, 결과가 guide_request에 기록된다.
+
+---
+
+## Phase 6b: 가이드 종합 분석 확장 — 수급·국내외 이슈 (2026-11-05 추가, US3 확장)
+
+**Goal**: 기술적 분석에 치우친 가이드에 수급(거래량·투자자별 매매·공매도)과 웹 검색 기반 국내외 이슈를 더해 종합 판단을 제공한다(research R13, FR-016·FR-017 확장).
+
+**Independent Test**: 국내 종목 가이드 요청 시 프롬프트에 [수급]이 들어가고, Claude 가이드는 검색 결과에 있는 출처의 이슈만 링크와 함께 보이며, OpenAI 가이드는 이슈 미지원 안내가 보인다.
+
+### Tests
+
+- [X] T113a [P] `SupplyDemand` 단위 테스트를 `UT/guide/domain/SupplyDemandTest.java`에 작성한다: 거래량 ÷ 20일 평균, 5·20일 순매수 합(잠정치 null은 0), 외국인 보유 비율 변화, 공매도 비중 평균
+- [X] T113b [P] `GuideIssue`·확장 `GuideContent` 단위 테스트를 `UT/guide/domain/GuideIssueTest.java`에 작성한다: http(s) 출처만 허용, URL 정규화, 이슈 최대 5개, 이전 형식 호환
+- [X] T113c [P] 수급 API 통합 테스트를 `IT/market/TossTradingTrendIT.java`에 작성한다(WireMock investor-trading·short-selling)
+- [X] T113d [P] `AiGenerateGuideIT`에 웹 검색 케이스를 추가한다: Claude 요청에 웹 검색 도구 포함, 검색 결과에 없는 출처 제거, 설명 뒤 JSON 추출, OpenAI 이슈 비움, 프롬프트에 [수급]
+- [X] T113e [P] `GuideRoutesIT`에 국내 종목 수급 조회·프롬프트 반영, Claude 이슈 링크 표시, OpenAI 미지원 안내, 수급 조회 실패 시 진행을 추가한다
+- [X] T113f [P] `GuideRequestE2E`에 Claude 종합 분석 시나리오(종합 판단·수급·이슈 출처 링크, axe 0건)를 추가한다
+
+### Implementation
+
+- [X] T113g `InvestorFlow`·`ShortSellingDay`(market.domain)와 `MarketDataProvider.fetchInvestorFlows`·`fetchShortSelling`, 토스증권 어댑터 구현(`STOCK_TRADING_TREND` 레이트 리미터)
+- [X] T113h `SupplyDemand` 요약과 `GuidePrompt`의 [수급] 항목, `GuideRunner`의 국내 종목 수급 조회(실패 시 제외하고 진행)
+- [X] T113i 출력 스키마 확장: `GuideContent`에 supplyDemand·issues(`GuideIssue`, `IssueImpact`)·overall, contracts/ai-guide-output.schema.json 갱신
+- [X] T113j Claude 웹 검색(`AnthropicChatOptions.webSearchTool`, 최대 5회)과 출처 검증, 여러 텍스트 블록 결합·JSON 추출, 가이드 타임아웃 `app.ai.guide-timeout`(기본 120초) 분리, 시스템 프롬프트 갱신
+- [X] T113l 가이드 버튼을 외곽선 버튼(`.btn.btn-sm.btn-guide`, 아이콘·호버·비활성 상태)으로 바꿔 텍스트 링크와 구분한다
+- [X] T113m 분석 진행 카드: 단계 목록(데이터 수집 → 수급 → 이슈 검색(Claude) → 종합 판단 → 리포트), 차트 스캔 애니메이션, 진행 막대, 경과 시간. 진행 중 폴링은 204로 카드를 유지하고, 단계는 경과 시간 기준(app.js)이며 `prefers-reduced-motion`을 존중한다
+- [X] T113n 응답 잘림 대응: 출력 한도 16000 토큰, 프롬프트 글자 수 축소, finish reason `max_tokens`/`length`로 잘림 감지 시 `OUTPUT_TRUNCATED` 실패(V8 CHECK 확장, 횟수 반환, 재요청 안내). `AiGenerateGuideIT`·`GuideRoutesIT`에 재현 테스트
+- [X] T113o 간결화: 프롬프트 항목별 1~3문장·전체 1500자, 결과 화면은 행동 가이드와 종합 판단만 먼저 보이고 나머지는 "자세히 보기"로 접는다
+- [X] T113k 결과 화면: 종합 판단·수급·국내외 이슈(호재/악재/중립, 출처 새 창 링크), OpenAI 미지원 안내, 이전 형식 기록 호환
+
+**Checkpoint**: 가이드가 기술·수급·이슈를 종합해 판단하고, 이슈는 검증된 출처와 함께 보인다.
 
 ---
 
@@ -518,7 +568,7 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T114 [P] [US5] 가이드 기록 조회 통합 테스트를 `IT/guide/GuideHistoryIT.java`에 작성한다:
+- [X] T114 [P] [US5] 가이드 기록 조회 통합 테스트를 `IT/guide/GuideHistoryIT.java`에 작성한다:
   - `GET /securities/{id}/guides?page=`가 20건씩 최신순, SUCCEEDED만 반환
   - 평단가 수정 후에도 스냅샷 값 유지
   - holding 삭제 시 `holding_id` NULL이 되고 "보유 종료" 표시
@@ -526,16 +576,21 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
   - DB에서 SUCCEEDED 행을 UPDATE하면 트리거가 거부(FR-028)
   - 빈 상태 문구
   - 미인증 401, 없는 종목 id 404
-- [ ] T115 [P] [US5] E2E 시나리오를 `E2E/guide/GuideHistoryE2E.java`에 작성한다. quickstart S6 1~3단계와 axe 위반 0건을 검증한다
+- [X] T115 [P] [US5] E2E 시나리오를 `E2E/guide/GuideHistoryE2E.java`에 작성한다. quickstart S6 1~3단계와 axe 위반 0건을 검증한다
 
 ### Implementation for User Story 5
 
-- [ ] T116 [US5] `GuideHistoryQuery`를 `MAIN/guide/persistence/GuideHistoryJdbcQuery.java`에 구현한다. `ix_guide_history` 인덱스를 쓰고, LIMIT 20 OFFSET, `holding_id IS NULL`이면 "보유 종료", `account.deleted_at IS NOT NULL`이면 "삭제된 계좌"를 판별하는 단일 쿼리다(guide_request.account_id JOIN)
-- [ ] T117 [US5] `GuideHistoryController`(`GET /securities/{id}/guides`)를 `MAIN/guide/web/GuideHistoryController.java`에, 템플릿을 `RES/templates/guide/history.html`에 구현한다:
+- [X] T116 [US5] `GuideHistoryQuery`를 `MAIN/guide/persistence/GuideHistoryJdbcQuery.java`에 구현한다. `ix_guide_history` 인덱스를 쓰고, LIMIT 20 OFFSET, `holding_id IS NULL`이면 "보유 종료", `account.deleted_at IS NOT NULL`이면 "삭제된 계좌"를 판별하는 단일 쿼리다(guide_request.account_id JOIN)
+- [X] T117 [US5] `GuideHistoryController`(`GET /securities/{id}/guides`)를 `MAIN/guide/web/GuideHistoryController.java`에, 템플릿을 `RES/templates/guide/history.html`에 구현한다:
   - 4가지 상태 구성
   - 각 기록 카드: 요청 시각, 공급자·모델, 스냅샷 값(`#money`), 행동 분류 배지, 상세 링크 `/guides/{id}`
   - `holding-row.html`에 "기록" 링크 추가
   - T114·T115을 통과시킨다
+
+**구현 메모 (2026-11-05)**: 계획과 달라진 점
+- T116 포트 `GuideHistoryQuery`(application.port)와 `GuideHistoryJdbcQuery`로 나눴다. 한 건 더 읽어(LIMIT 21) 다음 페이지 유무를 판단하고, 종목이 없으면 404다.
+- T117 기록 카드에는 본문 전체 대신 결론 한 줄(종합 판단 → 요약 → 원문 앞부분, 160자)을 보이고 상세는 `/guides/{id}`로 이동한다(간결화 요청 반영). "기록" 링크는 `holding-row.html`이 아니라 가이드 버튼 프래그먼트(`guide/button.html`) 옆에 두었다. 계좌가 삭제되면 "삭제된 계좌"만 표시한다(계좌 삭제 시 보유 종목도 함께 지워지므로).
+- 시각 표기는 `#money.dateTime`(KST `YYYY-MM-DD HH:mm`)을 추가해 단일 포매터로 처리했다.
 
 **Checkpoint**: 모든 사용자 스토리가 독립적으로 동작한다.
 
@@ -545,8 +600,13 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
 
 **Purpose**: 성능 예산 검증, 보안, 문서, 전체 품질 게이트
 
-- [ ] T118 [P] 기준 데이터셋 시드를 `perf/seed.sql`에 작성한다(헌법 1.0.1): 계좌 20개, 보유 종목 500건, 가이드 기록 1만 건, 종목·시세 포함
-- [ ] T119 [P] k6 스크립트를 `perf/budget.js`에 작성한다:
+**진행 메모 (2026-11-05)**
+- T125: `./gradlew check` 전체 통과(spotless, checkstyle, error prone, test, integrationTest, e2eTest, jacoco). `dependencyCheckAnalyze`는 빌드 설정 버그(키가 없으면 빈 NVD API 키를 넘겨 거부됨)를 고쳤지만, 로컬에 `NVD_API_KEY`가 없어 NVD 전체 다운로드(수 시간)를 끝까지 돌리지 못했다. CI(`secrets.NVD_API_KEY`)에서 확인이 필요하다.
+- T126: 앱 이미지(Dockerfile)·PostgreSQL 18 컨테이너에 `perf/seed.sql`을 넣고 k6를 실행해 예산을 모두 통과했다(5 VU·60초 p95: 목록 41.1ms, 단건 5.3ms, 쓰기 9.5ms, 체크 100%). 결과를 `perf/baseline.json`에 기록했다. quickstart S1~S6 수동 검증은 실제 토스증권 키·허용 IP·AI 키가 필요해 남아 있다. k6는 `noCookiesReset`이 없으면 반복마다 세션이 사라져 로그인 화면을 재므로 설정했다.
+
+- [X] T117a 제품 한도(2026-11-05 사용자 요청): 소유자 1인당 계좌 최대 2개(FR-002a, `AccountLimitPolicy`, `app.portfolio.max-accounts`), 보유 종목 최대 20개(FR-003a, 500 → 20). 초과 시 422와 상한 안내, 삭제한 계좌는 세지 않음. `AccountRoutesIT`·`HoldingRoutesIT`·`AccountLimitPolicyTest`
+- [X] T118 [P] 기준 데이터셋 시드를 `perf/seed.sql`에 작성한다(헌법 1.1.0): 계좌 2개, 보유 종목 20건, 가이드 기록 1만 건, 종목(검색용 2,000건)·시세 포함
+- [X] T119 [P] k6 스크립트를 `perf/budget.js`에 작성한다:
   - 로그인 세션
   - `GET /`(목록) p95 ≤ 300ms
   - `GET /fragments/quotes` ≤ 300ms
@@ -554,14 +614,14 @@ US4를 US2보다 먼저 머지하면 로컬 DB에서 V6이 V5보다 먼저 적�
   - `POST /accounts/{id}/holdings`(쓰기) ≤ 500ms
   - `GET /securities/search` ≤ 300ms
   - thresholds 위반 시 실패, 기준선 `perf/baseline.json` 대비 20% 회귀 시 실패
-- [ ] T120 [P] 프런트엔드 예산 E2E를 `E2E/perf/WebVitalsE2E.java`에 작성한다. 시드 데이터에서 대시보드 LCP ≤ 2.5s, CLS ≤ 0.1, INP ≤ 200ms(보유 종목 저장·가이드 버튼 상호작용, `PerformanceObserver` event timing), 초기 JS(gzip) ≤ 200KB(htmx만), 버튼 클릭 후 100ms 이내 `aria-busy` 표시(헌법 원칙 III)를 확인한다
-- [ ] T121 [P] HTML 린트 테스트를 `UT/ui/TemplateLintTest.java`에 작성한다:
+- [X] T120 [P] 프런트엔드 예산 E2E를 `E2E/perf/WebVitalsE2E.java`에 작성한다. 시드 데이터에서 대시보드 LCP ≤ 2.5s, CLS ≤ 0.1, INP ≤ 200ms(보유 종목 저장·가이드 버튼 상호작용, `PerformanceObserver` event timing), 초기 JS(gzip) ≤ 200KB(htmx만), 버튼 클릭 후 100ms 이내 `aria-busy` 표시(헌법 원칙 III)를 확인한다
+- [X] T121 [P] HTML 린트 테스트를 `UT/ui/TemplateLintTest.java`에 작성한다:
   - `RES/templates/**/*.html`에 인라인 `style=` 금지
   - 하드코딩 색상 금지
   - 모든 `<input>`에 연결된 `<label>` 존재(헌법 원칙 III)
-- [ ] T122 [P] 보안 헤더를 `SecurityConfig`에 추가한다: CSP `default-src 'self'`, `X-Content-Type-Options`, `Referrer-Policy`, 세션 쿠키 `HttpOnly; Secure; SameSite=Lax`. 검증은 `IT/auth/SecurityHeadersIT.java`에서 한다
-- [ ] T123 [P] `README.md`를 작성한다: 개요, 사전 준비(토스증권 client 키·허용 IP 등록, `APP_CRYPTO_KEY` 생성), `docker compose up`, 품질 게이트 명령, 아키텍처 요약. quickstart.md 링크를 포함한다
-- [ ] T124 헌법 `.specify/memory/constitution.md` 상단 Sync Impact Report 주석을 제거한다. 남은 TODO("500ms 충돌")는 research R8 비동기 설계로 해소되었다. 목록 상한 예외는 plan.md Complexity Tracking에 기록되어 있다
+- [X] T122 [P] 보안 헤더를 `SecurityConfig`에 추가한다: CSP `default-src 'self'`, `X-Content-Type-Options`, `Referrer-Policy`, 세션 쿠키 `HttpOnly; Secure; SameSite=Lax`. 검증은 `IT/auth/SecurityHeadersIT.java`에서 한다
+- [X] T123 [P] `README.md`를 작성한다: 개요, 사전 준비(토스증권 client 키·허용 IP 등록, `APP_CRYPTO_KEY` 생성), `docker compose up`, 품질 게이트 명령, 아키텍처 요약. quickstart.md 링크를 포함한다
+- [X] T124 헌법 `.specify/memory/constitution.md` 상단 Sync Impact Report 주석을 제거한다. (실제: 제품 한도 변경으로 기준 데이터셋을 계좌 2·보유 20건으로 개정한 1.1.0 보고서로 교체, 500ms TODO와 500건 예외는 해소로 기록) 남은 TODO("500ms 충돌")는 research R8 비동기 설계로 해소되었다. 목록 상한 예외는 plan.md Complexity Tracking에 기록되어 있다
 - [ ] T125 `./gradlew check`를 전체 실행한다(spotless, checkstyle, error prone, test, integrationTest, e2eTest, jacoco verification, dependencyCheck). 실패 항목을 수정해 모두 통과시킨다
 - [ ] T126 `docker compose up -d --build` 후 quickstart.md S1~S6 수동 검증과 `docker compose --profile perf run --rm k6`을 실행하고, 결과를 기준선 `perf/baseline.json`에 기록한다
 

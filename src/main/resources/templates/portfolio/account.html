@@ -34,7 +34,7 @@
 <th:block th:fragment="rename-form">
     <form class="account-header form-inline" th:id="'account-header-' + ${account.id}"
           th:hx-put="@{/accounts/{id}(id=${account.id})}" hx-target="this" hx-swap="outerHTML">
-        <div th:replace="~{fragments/field :: field('rename-' + ${account.id}, 'name', #{portfolio.account.name}, 'text', ${accountNameValue != null ? accountNameValue : account.name}, null, null)}"></div>
+        <div th:replace="~{fragments/field :: field('rename-' + ${account.id}, 'name', #{portfolio.account.name}, 'text', ${accountNameValue != null ? accountNameValue : account.name}, null, null, null, false)}"></div>
         <button th:replace="~{fragments/button :: button(#{common.save}, 'primary', 'submit')}"></button>
         <button type="button" class="btn"
                 th:hx-get="@{/accounts/{id}/header(id=${account.id})}"

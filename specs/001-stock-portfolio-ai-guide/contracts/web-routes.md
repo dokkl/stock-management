@@ -35,13 +35,13 @@
 |---|---|---|---|
 | GET | `/` | 계좌별 보유 목록 대시보드 | 200 전체 페이지 |
 | GET | `/fragments/quotes` | 모든 보유 종목의 시세 셀 (htmx `every 30s` 폴링) | 200 프래그먼트, `hx-swap-oob` 셀 목록 |
-| POST | `/accounts` | `name` | 201 → 계좌 섹션 프래그먼트 / 422 |
+| POST | `/accounts` | `name` | 201 → 계좌 섹션 프래그먼트 / 422(검증·중복·계좌 2개 상한 FR-002a) |
 | PUT | `/accounts/{id}` | `name` | 200 계좌 헤더 프래그먼트 / 422 / 404 |
 | DELETE | `/accounts/{id}` | 확인 대화상자 후 호출 | 200 빈 프래그먼트 + 토스트 / 404 |
 | GET | `/accounts/{id}/edit` | 계좌 이름 변경 폼 프래그먼트 | 200 / 404 |
 | GET | `/accounts/{id}/header` | 계좌 헤더 프래그먼트(이름 변경 취소) | 200 / 404 |
 | GET | `/securities/search?q=&market=` | 종목 검색 자동완성. `q`는 1~40자, 최대 20건 | 200 목록 프래그먼트 |
-| POST | `/accounts/{id}/holdings` | `securityId`, `avgPrice`, `quantity` | 201 행 프래그먼트 / 422(검증·중복 FR-006·보유 500개 상한 FR-003a) |
+| POST | `/accounts/{id}/holdings` | `securityId`, `avgPrice`, `quantity` | 201 행 프래그먼트 / 422(검증·중복 FR-006·보유 20개 상한 FR-003a) |
 | PUT | `/holdings/{id}` | `avgPrice`, `quantity` | 200 행 프래그먼트 / 422 / 404 |
 | DELETE | `/holdings/{id}` | | 200 + 토스트 / 404 |
 | GET | `/holdings/{id}` | 보유 종목 행 프래그먼트(수정 취소) | 200 / 404 |
@@ -66,20 +66,24 @@
 | Method | Path | 설명 | 응답 |
 |---|---|---|---|
 | POST | `/holdings/{id}/guides` | 가이드 요청(슬롯 예약 + 비동기 실행) | 아래 표 |
-| GET | `/guides/{id}/status` | 진행 상태 폴링(htmx `every 2s`) | `PENDING`: 200 진행 프래그먼트(폴링 계속) / `SUCCEEDED`: 200 결과 프래그먼트 + `HX-Trigger: guide-quota-changed` / `FAILED`: 200 오류 프래그먼트(폴링 중단) |
+| GET | `/guides/{id}/status` | 진행 상태 폴링(htmx `every 2s`, 진행 카드 안의 숨은 폴러) | `PENDING`: 204 본문 없음(진행 카드와 애니메이션 유지, 폴링 계속) / `SUCCEEDED`: 200 결과 프래그먼트 + `HX-Trigger: guide-quota-changed` / `FAILED`: 200 오류 프래그먼트(폴링 중단) |
 | GET | `/guides/{id}` | 가이드 상세(결과 전체) | 200 / 404 |
+| GET | `/holdings/{id}/guide-button` | 가이드 버튼(남은 횟수·비활성 사유) 프래그먼트. `guide-quota-changed-{securityId}` 이벤트로 다시 받는다 | 200 / 404 |
 | GET | `/securities/{id}/guides?page=` | 종목별 가이드 기록, 최신순, 20건 페이지 | 200 |
 
 ### `POST /holdings/{id}/guides` 응답
 
 | 조건 | 상태 | 본문 |
 |---|---|---|
-| 슬롯 예약 성공 | 202 | 진행 중 프래그먼트(`hx-get=/guides/{gid}/status`, `hx-trigger="every 2s"`) |
+| 슬롯 예약 성공 | 202 | 분석 진행 카드(단계 목록·진행 막대·경과 시간, 숨은 폴러 `hx-get=/guides/{gid}/status` `hx-trigger="every 2s"`) |
 | 등록된 AI 키 없음 (FR-023d) | 409 | `HX-Redirect: /settings/ai` |
 | 오늘 이 종목 2회 사용 (FR-018) | 429 | 한도 안내 프래그먼트 + 초기화 시각 `내일 00:00 (KST)` |
 | 거래정지·상장폐지 종목 | 409 | 비활성 안내 |
 | holding 없음 | 404 | |
 
+- 202와 `/status`의 SUCCEEDED·FAILED 응답은 `HX-Trigger: guide-quota-changed, guide-quota-changed-{securityId}`를 보낸다.
+  버튼은 종목별 이벤트만 듣는다(같은 종목을 여러 계좌에 보유하면 그 행들이 함께 갱신된다).
+- 시세가 아직 없는 종목은 409로 안내한다.
 - 같은 종목에서 `PENDING`이 이미 있으면 새 슬롯을 잡지 않고, 기존 요청의 진행 프래그먼트를
   반환한다(202). 연속 클릭을 이렇게 방지한다(US3 시나리오 7).
 - 실패 프래그먼트 문구는 `failure_kind`에 따라 다르다.

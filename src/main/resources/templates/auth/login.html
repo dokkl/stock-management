@@ -4,17 +4,22 @@
 <body>
 <a class="skip-link" href="#main">본문으로 건너뛰기</a>
 <header th:replace="~{layout :: header}"></header>
-<main id="main" class="narrow">
-    <h1 th:text="#{login.title}">로그인</h1>
-    <div th:if="${param.error}" class="alert alert-error" role="alert" th:text="#{login.error}">오류</div>
-    <div th:if="${param.locked}" class="alert alert-error" role="alert"
-         th:text="#{login.locked(${lockMinutes})}">잠금</div>
+<main id="main" class="narrow login">
+    <h1 th:text="#{login.title}">시작하기</h1>
+    <p class="muted" th:text="#{login.description}">카카오 계정으로 바로 시작할 수 있습니다.</p>
+    <div th:if="${param.error != null and param.error[0] == 'cancelled'}" class="alert" role="alert"
+         th:text="#{login.error.cancelled}">취소</div>
+    <div th:if="${param.error != null and param.error[0] != 'cancelled'}" class="alert alert-error" role="alert"
+         th:text="#{login.error.failed}">실패</div>
     <div th:if="${param.logout}" class="alert" role="status" th:text="#{login.logout}">로그아웃</div>
-    <form class="form" th:action="@{/login}" method="post">
-        <input type="hidden" name="username" value="owner">
-        <div th:replace="~{fragments/field :: field('password', 'password', #{login.password}, 'password', '', null, null)}"></div>
-        <button th:replace="~{fragments/button :: button(#{login.submit}, 'primary', 'submit')}"></button>
-    </form>
+    <div th:if="${param.withdrawn}" class="alert" role="status" th:text="#{login.withdrawn}">탈퇴</div>
+    <a class="btn btn-kakao" th:href="@{/oauth2/authorization/kakao}">
+        <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" class="btn-icon">
+            <path fill="currentColor" d="M12 3C6.48 3 2 6.48 2 10.78c0 2.77 1.86 5.2 4.66 6.58l-.95 3.48c-.08.3.26.55.53.38l4.15-2.74c.52.06 1.06.1 1.61.1 5.52 0 10-3.48 10-7.8S17.52 3 12 3z"/>
+        </svg>
+        <span th:text="#{login.kakao}">카카오로 시작하기</span>
+    </a>
+    <p class="muted login-note" th:text="#{login.note}">닉네임만 받으며, 비밀번호는 만들지 않습니다.</p>
 </main>
 <th:block th:replace="~{layout :: chrome}"></th:block>
 </body>

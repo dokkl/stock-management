@@ -16,6 +16,8 @@ public final class TossRateLimiter {
         STOCK_ALL(1),
         /** 공시 한도를 확인하지 못해 MARKET_INFO와 같은 수준으로 보수적으로 잡는다. */
         STOCK(2),
+        /** 투자자별 매매동향·공매도. 공시 한도를 확인하지 못해 보수적으로 잡는다. */
+        STOCK_TRADING_TREND(2),
         MARKET_INFO(2),
         MARKET_DATA(12),
         MARKET_DATA_CHART(15);

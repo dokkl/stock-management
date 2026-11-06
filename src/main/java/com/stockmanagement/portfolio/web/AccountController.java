@@ -5,6 +5,8 @@ import com.stockmanagement.common.error.ResourceNotFoundException;
 import com.stockmanagement.portfolio.application.AccountService;
 import com.stockmanagement.portfolio.application.DashboardQuery;
 import com.stockmanagement.portfolio.application.DashboardView.AccountView;
+import com.stockmanagement.user.domain.UserId;
+import com.stockmanagement.user.web.CurrentUser;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -29,11 +31,15 @@ class AccountController {
     }
 
     @PostMapping("/accounts")
-    String create(@RequestParam(defaultValue = "") String name, Model model, HttpServletResponse response) {
+    String create(
+            @CurrentUser UserId userId,
+            @RequestParam(defaultValue = "") String name,
+            Model model,
+            HttpServletResponse response) {
         try {
-            long id = accountService.create(name);
+            long id = accountService.create(userId, name);
             response.setStatus(HttpStatus.CREATED.value());
-            model.addAttribute("account", requireAccount(id));
+            model.addAttribute("account", requireAccount(userId, id));
             return "portfolio/account :: created";
         } catch (DomainValidationException e) {
             FormErrors.apply(e, model, response);
@@ -44,44 +50,45 @@ class AccountController {
     }
 
     @GetMapping("/accounts/{id}/edit")
-    String renameForm(@PathVariable long id, Model model) {
-        model.addAttribute("account", requireAccount(id));
+    String renameForm(@CurrentUser UserId userId, @PathVariable long id, Model model) {
+        model.addAttribute("account", requireAccount(userId, id));
         return "portfolio/account :: rename-form";
     }
 
     @GetMapping("/accounts/{id}/header")
-    String header(@PathVariable long id, Model model) {
-        model.addAttribute("account", requireAccount(id));
+    String header(@CurrentUser UserId userId, @PathVariable long id, Model model) {
+        model.addAttribute("account", requireAccount(userId, id));
         return "portfolio/account :: header-only";
     }
 
     @PutMapping("/accounts/{id}")
     String rename(
+            @CurrentUser UserId userId,
             @PathVariable long id,
             @RequestParam(defaultValue = "") String name,
             Model model,
             HttpServletResponse response) {
         try {
-            accountService.rename(id, name);
+            accountService.rename(userId, id, name);
         } catch (DomainValidationException e) {
             FormErrors.apply(e, model, response);
-            model.addAttribute("account", requireAccount(id));
+            model.addAttribute("account", requireAccount(userId, id));
             model.addAttribute("accountNameValue", name);
             return "portfolio/account :: rename-form";
         }
-        model.addAttribute("account", requireAccount(id));
+        model.addAttribute("account", requireAccount(userId, id));
         return "portfolio/account :: header-only";
     }
 
     @DeleteMapping("/accounts/{id}")
-    String delete(@PathVariable long id, Model model) {
-        accountService.delete(id);
+    String delete(@CurrentUser UserId userId, @PathVariable long id, Model model) {
+        accountService.delete(userId, id);
         FormErrors.toast(model, "portfolio.account.deleted");
-        model.addAttribute("nowEmpty", dashboardQuery.load().isEmpty());
+        model.addAttribute("nowEmpty", dashboardQuery.load(userId).isEmpty());
         return "portfolio/account :: deleted";
     }
 
-    private AccountView requireAccount(long id) {
-        return dashboardQuery.findAccount(id).orElseThrow(() -> new ResourceNotFoundException("account", id));
+    private AccountView requireAccount(UserId userId, long id) {
+        return dashboardQuery.findAccount(userId, id).orElseThrow(() -> new ResourceNotFoundException("account", id));
     }
 }

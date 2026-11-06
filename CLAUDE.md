@@ -1,12 +1,13 @@
 # CLAUDE.md
 
-1인 소유자용 주식 포트폴리오 웹 앱. Java 25 + Spring Boot 4.1 + Thymeleaf/htmx + PostgreSQL 18.
+카카오 간편로그인 기반 다중 사용자 주식 포트폴리오 웹 앱. Java 25 + Spring Boot 4.1 + Thymeleaf/htmx + PostgreSQL 18.
 사람용 개요는 `README.md`에 있다.
 
 ## 먼저 읽을 것
 
 - `.specify/memory/constitution.md`: 프로젝트 헌법. 다른 모든 관행보다 우선한다.
-- `specs/001-stock-portfolio-ai-guide/`: 현재 기능의 `spec.md`, `plan.md`, `data-model.md`,
+- `specs/002-kakao-login-multiuser/`: 카카오 로그인·다중 사용자(기능 002). 인증·소유권 규칙은 여기를 따른다.
+- `specs/001-stock-portfolio-ai-guide/`: 포트폴리오·시세·AI 가이드 기능의 `spec.md`, `plan.md`, `data-model.md`,
   `contracts/`, `tasks.md`. 구현 전에 해당 작업(Txxx)과 계약 문서를 확인한다.
 - `tasks.md`의 체크박스(`[X]`/`[ ]`)가 진행 상황의 기준이다. 작업을 끝내면 체크한다.
 
@@ -33,7 +34,13 @@
 
 ## 아키텍처 규칙 (ArchitectureTest가 강제)
 
-- 기능 패키지: `auth`, `portfolio`, `market` (계획상 `aicredential`, `guide` 추가 예정), 공용은 `common`.
+- 기능 패키지: `user`(카카오 로그인·탈퇴), `portfolio`, `market`, `aicredential`, `guide`, 공용은 `common`.
+- **사용자 범위(002)**: 사용자 소유 데이터(계좌·보유·가이드)의 저장소 포트 메서드는 `UserId`를 필수 인자로 받고
+  SQL에 `user_id` 조건을 붙인다(holding은 account JOIN). 남의 항목은 없는 항목과 똑같이 404. 컨트롤러는
+  `@CurrentUser UserId`로 받는다. 애플리케이션·도메인은 Spring Security에 의존하지 않는다(ArchUnit).
+- 종목·시세·장 운영·수급, **AI 키·공급자 선택**(`ai_credential`, `ai_settings`)은 공유 데이터다(사용자 범위 없음).
+  AI 키는 관리자(`ADMIN_KAKAO_IDS` → `ROLE_ADMIN`)만 `/settings/ai`에서 관리하고 모든 사용자의 가이드가 쓴다.
+  일반 사용자에게 관리자 경로는 404다(`SecurityConfig`).
 - 각 기능 안에서 `web → application → domain` 한 방향. `domain`은 domain 바깥에 의존하지 않는다.
 - `web`은 `persistence`/`adapter`에 의존하지 않는다. `application`은 `web`에 의존하지 않는다.
 - 외부 연동·영속성은 `application/port`의 **인터페이스**를 `persistence/` 또는 `adapter/`에서 구현한다.
@@ -64,6 +71,12 @@
 
 ## 참고
 
-- `compose.yaml`의 `perf` 프로필(k6)은 `./perf/budget.js`를 참조하지만 `perf/` 디렉터리는 아직 없다.
+- 배포: `infra/`(Terraform, AWS Lightsail 계정 378040395734 서울) + `.github/workflows/deploy.yml`(main CI 통과 후 자동).
+  앱 환경 변수(비밀값)는 SSM `/stock-management/prod/*`에 두고 배포 때 주입한다. 새 환경 변수를 추가하면
+  `infra/terraform/parameters.tf`에도 추가한다. 운영 DB는 Lightsail 관리형 PostgreSQL 18.
+
+- 성능 예산: `perf/seed.sql`(기준 데이터셋) + `perf/budget.js`(k6) + `perf/baseline.json`(기준선, 20% 회귀 시 실패).
+  k6는 `noCookiesReset: true`가 없으면 반복마다 세션이 사라진다. 프런트엔드 예산은 `WebVitalsE2E`.
+- 제품 한도: 계좌 최대 2개(`app.portfolio.max-accounts`), 보유 종목 최대 20개(`app.portfolio.max-holdings`).
 - 토스증권 API는 그룹별 호출 한도가 있어 `TossRateLimiter`가 그보다 낮게 제한한다. 호출을 추가할 때
   해당 그룹 한도를 확인한다.

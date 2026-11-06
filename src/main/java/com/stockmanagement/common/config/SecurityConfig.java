@@ -1,53 +1,71 @@
 package com.stockmanagement.common.config;
 
-import com.stockmanagement.auth.application.SetupService;
-import com.stockmanagement.auth.web.HtmxAwareAuthenticationEntryPoint;
-import com.stockmanagement.auth.web.SetupRequiredFilter;
+import com.stockmanagement.user.adapter.kakao.KakaoOAuth2UserService;
+import com.stockmanagement.user.web.HtmxAwareAuthenticationEntryPoint;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.LockedException;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
+/** 카카오 간편로그인(OAuth2 Authorization Code, research R1·R3). 비밀번호 로그인은 없다. */
 @Configuration(proxyBeanMethods = false)
 class SecurityConfig {
 
     @Bean
-    PasswordEncoder passwordEncoder() {
-        return Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8();
-    }
-
-    @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, SetupService setupService) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, KakaoOAuth2UserService kakaoUserService)
+            throws Exception {
         http.authorizeHttpRequests(auth -> auth.requestMatchers(
-                                "/setup", "/login", "/css/**", "/js/**", "/webjars/**", "/actuator/health", "/error")
+                                "/login",
+                                "/oauth2/**",
+                                "/login/oauth2/**",
+                                "/css/**",
+                                "/js/**",
+                                "/img/**",
+                                "/webjars/**",
+                                "/actuator/health",
+                                "/error")
                         .permitAll()
+                        .requestMatchers("/settings/ai", "/settings/ai/**")
+                        .hasRole("ADMIN")
                         .anyRequest()
-                        .hasRole("OWNER"))
-                .formLogin(form -> form.loginPage("/login")
+                        .hasRole("USER"))
+                .oauth2Login(oauth -> oauth.loginPage("/login")
+                        .userInfoEndpoint(userInfo -> userInfo.userService(kakaoUserService))
                         .defaultSuccessUrl("/", true)
-                        .failureHandler(loginFailureHandler())
-                        .permitAll())
+                        .failureHandler(loginFailureHandler()))
+                .sessionManagement(session -> session.sessionFixation(fixation -> fixation.changeSessionId()))
                 .logout(logout -> logout.logoutUrl("/logout").logoutSuccessUrl("/login?logout"))
-                .exceptionHandling(ex -> ex.authenticationEntryPoint(new HtmxAwareAuthenticationEntryPoint()))
-                .headers(headers -> headers.contentSecurityPolicy(csp -> csp.policyDirectives(
-                                "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:;"
-                                        + " frame-ancestors 'none'; form-action 'self'"))
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(new HtmxAwareAuthenticationEntryPoint())
+                        .accessDeniedHandler(accessDeniedHandler()))
+                .headers(headers -> headers.contentSecurityPolicy(
+                                csp -> csp.policyDirectives(
+                                        "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:;"
+                                                + " object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"))
                         .referrerPolicy(
-                                referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN)))
-                .addFilterBefore(new SetupRequiredFilter(setupService), UsernamePasswordAuthenticationFilter.class);
+                                referrer -> referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN)));
         return http.build();
     }
 
+    /** 관리자 전용 화면은 일반 사용자에게 없는 화면처럼 404로 보인다. CSRF 실패는 그대로 403이다. */
+    private static AccessDeniedHandler accessDeniedHandler() {
+        return (request, response, exception) -> response.sendError(
+                exception instanceof CsrfException
+                        ? HttpServletResponse.SC_FORBIDDEN
+                        : HttpServletResponse.SC_NOT_FOUND);
+    }
+
+    /** 카카오 동의 취소(access_denied)와 그 밖의 실패(state 불일치, 토큰·사용자 정보 오류)를 나눠 안내한다. */
     private static AuthenticationFailureHandler loginFailureHandler() {
         return (request, response, exception) -> {
-            String query = exception instanceof LockedException ? "locked" : "error";
-            response.sendRedirect(request.getContextPath() + "/login?" + query);
+            boolean cancelled = exception instanceof OAuth2AuthenticationException oauth
+                    && "access_denied".equals(oauth.getError().getErrorCode());
+            response.sendRedirect(request.getContextPath() + "/login?error=" + (cancelled ? "cancelled" : "failed"));
         };
     }
 }
