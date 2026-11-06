@@ -7,6 +7,7 @@
 
 - `.specify/memory/constitution.md`: 프로젝트 헌법. 다른 모든 관행보다 우선한다.
 - `specs/002-kakao-login-multiuser/`: 카카오 로그인·다중 사용자(기능 002). 인증·소유권 규칙은 여기를 따른다.
+- `specs/003-market-indicators/`: 대시보드 시장 지표(토스 국내 지수·환율, FRED 미국 지표).
 - `specs/001-stock-portfolio-ai-guide/`: 포트폴리오·시세·AI 가이드 기능의 `spec.md`, `plan.md`, `data-model.md`,
   `contracts/`, `tasks.md`. 구현 전에 해당 작업(Txxx)과 계약 문서를 확인한다.
 - `tasks.md`의 체크박스(`[X]`/`[ ]`)가 진행 상황의 기준이다. 작업을 끝내면 체크한다.

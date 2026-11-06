@@ -7,6 +7,7 @@ import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
@@ -23,6 +24,10 @@ public final class MoneyFormatter {
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm").withZone(KstDate.ZONE);
     private static final DateTimeFormatter SHORT_TIME =
             DateTimeFormatter.ofPattern("HH:mm").withZone(KstDate.ZONE);
+    private static final DateTimeFormatter MONTH_DAY = DateTimeFormatter.ofPattern("MM-dd");
+    private static final DateTimeFormatter MONTH_DAY_TIME =
+            DateTimeFormatter.ofPattern("MM-dd HH:mm").withZone(KstDate.ZONE);
+    private static final int INDICATOR_SCALE = 2;
 
     /** 현재가·손익: 통화 표시 자릿수(KRW 0, USD 2). */
     public String price(BigDecimal amount, Currency currency) {
@@ -60,6 +65,26 @@ public final class MoneyFormatter {
     /** 지연 표시용 시각(KST): "14:32". */
     public String shortTime(Instant instant) {
         return SHORT_TIME.format(instant);
+    }
+
+    /** 시장 지표 값: 천 단위 구분, 소수 2자리("2,812.45"). 단위는 화면 메시지가 붙인다. */
+    public String indicator(BigDecimal value) {
+        return number(value, INDICATOR_SCALE);
+    }
+
+    /** 시장 지표 등락: "▲ 22.35 (+0.80%)". rate는 비율이다. */
+    public String indicatorChange(BigDecimal change, BigDecimal rate) {
+        return arrow(change) + " " + number(change.abs(), INDICATOR_SCALE) + " (" + percent(rate) + ")";
+    }
+
+    /** 일별 종가 기준일: "11-04". */
+    public String monthDay(LocalDate date) {
+        return MONTH_DAY.format(date);
+    }
+
+    /** 장 마감 지표 기준 시각(KST): "11-05 15:30". */
+    public String monthDayTime(Instant instant) {
+        return MONTH_DAY_TIME.format(instant);
     }
 
     /** 비율을 부호 있는 퍼센트로: +1.43%, −1.32%, 0.00%. */

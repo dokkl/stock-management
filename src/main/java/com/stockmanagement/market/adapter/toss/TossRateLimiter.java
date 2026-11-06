@@ -20,7 +20,10 @@ public final class TossRateLimiter {
         STOCK_TRADING_TREND(2),
         MARKET_INFO(2),
         MARKET_DATA(12),
-        MARKET_DATA_CHART(15);
+        MARKET_DATA_CHART(15),
+        /** 시장 지표(국내 지수) 현재가·일봉(003). 공시 한도를 확인하지 못해 보수적으로 잡는다. */
+        MARKET_INDICATOR(2),
+        MARKET_INDICATOR_CHART(2);
 
         private final int perSecond;
 

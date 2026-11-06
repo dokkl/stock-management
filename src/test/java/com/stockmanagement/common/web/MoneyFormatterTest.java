@@ -5,11 +5,33 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.stockmanagement.common.domain.Currency;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 
 class MoneyFormatterTest {
 
     private final MoneyFormatter formatter = new MoneyFormatter();
+
+    @Test
+    void formatsIndicatorValueWithTwoDecimals() {
+        assertThat(formatter.indicator(new BigDecimal("2812.4"))).isEqualTo("2,812.40");
+        assertThat(formatter.indicator(new BigDecimal("15.235"))).isEqualTo("15.24");
+    }
+
+    @Test
+    void formatsIndicatorChange() {
+        assertThat(formatter.indicatorChange(new BigDecimal("22.35"), new BigDecimal("0.0080")))
+                .isEqualTo("▲ 22.35 (+0.80%)");
+        assertThat(formatter.indicatorChange(new BigDecimal("-1.5"), new BigDecimal("-0.0011")))
+                .isEqualTo("▼ 1.50 (−0.11%)");
+    }
+
+    @Test
+    void formatsMonthDay() {
+        assertThat(formatter.monthDay(LocalDate.of(2026, 11, 4))).isEqualTo("11-04");
+        assertThat(formatter.monthDayTime(Instant.parse("2026-11-05T06:30:00Z")))
+                .isEqualTo("11-05 15:30");
+    }
 
     @Test
     void formatsKrwPrice() {

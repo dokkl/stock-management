@@ -55,6 +55,8 @@ public abstract class IntegrationTestBase {
         registry.add("app.ai.base-urls.openai", () -> WIREMOCK.baseUrl() + "/v1");
         registry.add("app.ai.timeout", () -> "2s");
         registry.add("app.ai.guide-timeout", () -> "2s");
+        registry.add("app.fred.base-url", WIREMOCK::baseUrl);
+        registry.add("app.fred.api-key", () -> "test-fred-key");
         registry.add("app.toss.client-id", () -> "test-client-id");
         registry.add("app.toss.client-secret", () -> "test-client-secret");
         registry.add("app.crypto.key", () -> Base64.getEncoder().encodeToString(new byte[32]));

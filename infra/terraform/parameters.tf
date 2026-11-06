@@ -20,6 +20,7 @@ locals {
     "TOSS_CLIENT_ID",
     "TOSS_CLIENT_SECRET",
     "ADMIN_KAKAO_IDS", # 관리자 카카오 회원번호(쉼표 구분). 첫 배포(V11 마이그레이션) 전에 넣는다.
+    "FRED_API_KEY",    # 미국 지수·WTI·VIX(FRED) API 키. 없으면 EMPTY(미국 지표 갱신 안 함)
   ]
 }
 

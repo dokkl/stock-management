@@ -44,5 +44,14 @@ public class MarketCalendarCache {
         }
     }
 
+    /** 이미 받아 둔 오늘 장 운영 정보만 돌려준다(외부 호출 없음). 화면 요청 경로에서 쓴다. */
+    public Optional<MarketCalendar> cached(Market market) {
+        LocalDate localToday = LocalDate.ofInstant(clock.instant(), market.zone());
+        Cached cached = cache.get(market);
+        return cached != null && cached.fetchedOn().equals(localToday)
+                ? Optional.of(cached.calendar())
+                : Optional.empty();
+    }
+
     private record Cached(MarketCalendar calendar, LocalDate fetchedOn) {}
 }
